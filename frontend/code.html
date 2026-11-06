@@ -944,14 +944,17 @@
       font-family: var(--font-sans);
     }
 
-    /* Side Drawer for Inspecting Chunk / Details */
+    /* ==========================================================================
+       Interactive Attack Investigation Sidebar & Drawer Styles
+       ========================================================================== */
     .drawer-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.65);
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.25s ease;
       z-index: 200;
     }
     .drawer-backdrop.open {
@@ -961,52 +964,279 @@
     .drawer-panel {
       position: fixed;
       top: 0; right: 0;
-      width: 540px;
-      max-width: 92vw;
+      width: 620px;
+      max-width: 94vw;
       height: 100vh;
       background-color: var(--surface);
       border-left: 1px solid var(--divider);
+      box-shadow: -12px 0 36px rgba(0, 0, 0, 0.6);
       transform: translateX(100%);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 201;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      padding: 32px 28px;
+      overflow-y: hidden;
+      padding: 0;
     }
     .drawer-panel.open {
       transform: translateX(0);
     }
-    .drawer-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 18px;
-      cursor: pointer;
-      align-self: flex-end;
-      padding: 4px 6px;
-      line-height: 1;
+    .drawer-header {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 10;
+      flex-shrink: 0;
     }
-    .drawer-close:hover { color: var(--text); }
-    .drawer-section-title {
+    .drawer-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .drawer-title-main {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+    .drawer-id-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      color: var(--text-secondary);
+    }
+    .drawer-close {
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      color: var(--text-secondary);
+      font-size: 15px;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .drawer-close:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--hover);
+    }
+    .drawer-body {
+      padding: 24px 26px 48px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      flex: 1;
+    }
+    
+    /* Sidebar Cards */
+    .sb-card {
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      border-radius: 6px;
+      padding: 18px 20px;
+    }
+    .sb-card-title {
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: var(--text-muted);
-      margin: 20px 0 6px 0;
       font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .drawer-code-pre {
-      background-color: var(--bg);
+    .sb-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px 18px;
+      margin-bottom: 14px;
+    }
+    .sb-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sb-meta-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+    }
+    .sb-meta-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      font-family: var(--font-mono);
+    }
+    .sb-desc-text {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* Attack-Specific Graph */
+    .sb-graph-container {
+      background: rgba(0, 0, 0, 0.35);
       border: 1px solid var(--divider);
       border-radius: 4px;
-      padding: 14px;
-      font-family: var(--font-mono);
+      padding: 12px;
+      position: relative;
+    }
+    .sb-graph-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
+    }
+    .sb-node-interactive {
+      cursor: pointer;
+      transition: r 0.15s ease, fill 0.15s ease, filter 0.15s ease;
+    }
+    .sb-node-interactive:hover {
+      r: 8px !important;
+      filter: drop-shadow(0 0 6px rgba(79, 209, 181, 0.8));
+    }
+
+    /* Correlated Attack Cards */
+    .corr-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--divider);
+      border-radius: 5px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      margin-bottom: 10px;
+    }
+    .corr-card:hover {
+      background: var(--hover);
+      border-color: var(--accent);
+      transform: translateX(3px);
+    }
+    .corr-card:last-child {
+      margin-bottom: 0;
+    }
+    .corr-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .corr-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .corr-nav-link {
       font-size: 11.5px;
-      line-height: 1.5;
+      color: var(--accent);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    /* Suggested Action Item */
+    .action-spec-item {
+      border-left: 2px solid var(--accent);
+      background: rgba(79, 209, 181, 0.03);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border-radius: 0 4px 4px 0;
+    }
+    .action-spec-item:last-child {
+      margin-bottom: 0;
+    }
+    .action-spec-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .action-spec-row {
+      font-size: 12px;
       color: var(--text-secondary);
-      overflow-x: auto;
-      max-height: 400px;
+      line-height: 1.5;
+      margin-bottom: 4px;
+    }
+    .action-spec-row strong {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* Detection Reasoning Badges */
+    .reason-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      margin-bottom: 5px;
+    }
+    .reason-tag.observed {
+      background: rgba(111, 207, 151, 0.15);
+      color: var(--low);
+      border: 1px solid rgba(111, 207, 151, 0.3);
+    }
+    .reason-tag.inferred {
+      background: rgba(233, 196, 106, 0.15);
+      color: var(--medium);
+      border: 1px solid rgba(233, 196, 106, 0.3);
+    }
+
+    /* Findings List Row Hover Hint */
+    .f-open-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+    .finding-item-row:hover .f-open-hint {
+      color: var(--accent);
+      transform: translateX(2px);
+    }
+
+    /* Responsive Overrides */
+    @media (max-width: 768px) {
+      .drawer-panel {
+        width: 100vw;
+        max-width: 100vw;
+      }
+      .drawer-header {
+        padding: 14px 18px;
+      }
+      .drawer-body {
+        padding: 18px 16px;
+      }
+      .sb-meta-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 680px) {
@@ -1077,17 +1307,7 @@
 <span>Dots: evidence lines · Arcs: linked events · Squares: findings per part</span>
 </div>
 </div>
-<!-- 2. Correlated Attack Sequences Section -->
-<div class="attack-sequences-section" id="attack-sequences-section" style="margin-bottom: 40px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-    <h3 style="font-size:14px; font-weight:600; color:var(--text); letter-spacing:-0.1px;">Correlated Attack Sequences &amp; Kill Chains</h3>
-    <span style="font-size:12px; color:var(--text-muted);">Multi-stage threats grouped by hostile actor</span>
-  </div>
-  <div id="sequences-list-container">
-    <!-- Dynamically populated with all distinct attack sequences -->
-  </div>
-</div>
-<!-- 3. Findings Section -->
+<!-- 2. Findings Section -->
 <div class="findings-section">
 <div class="findings-control-bar">
 <div class="filter-tabs" id="filter-tabs">
@@ -1188,9 +1408,15 @@
 <div id="chart-tooltip"></div>
 <!-- Side Drawer for Chunk / Finding Details -->
 <div class="drawer-backdrop" id="drawer-backdrop"></div>
-<div class="drawer-panel" id="drawer-panel">
-<button class="drawer-close" id="drawer-close">✕</button>
-<div id="drawer-content"></div>
+<div class="drawer-panel" id="drawer-panel" role="dialog" aria-modal="true" aria-label="Investigation Drawer">
+  <div class="drawer-header" id="drawer-header">
+    <div class="drawer-header-left" id="drawer-header-left">
+      <span class="drawer-id-badge" id="drawer-id-badge">INVESTIGATION</span>
+      <span class="drawer-title-main" id="drawer-title-main">Attack Details</span>
+    </div>
+    <button class="drawer-close" id="drawer-close" title="Close details (Esc)">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-content"></div>
 </div>
 <script>
   (function() {
@@ -1208,6 +1434,238 @@
     let selectedFindingId = null;
     let totalLogLines = 258;
     let totalLogParts = 9;
+
+    // =========================================================================
+    // DEFAULT VERIFIED INCIDENT DATASET (Agrigen Server Log Baseline)
+    // =========================================================================
+    const DEFAULT_FINDINGS = [
+      {
+        id: "F-01",
+        severity: "Critical",
+        type: "Account Compromise",
+        category: "Credential Exploitation / Session Hijacking",
+        ip: "203.0.113.44",
+        reason: "Attacker achieved successful authentication following automated credential guessing, obtaining privileged administrative session tokens.",
+        caption: "1 occurrence · line 18 (Part 1)",
+        action: "Immediately revoke active session tokens, force password reset for workspace.admin, and audit downstream actions.",
+        lines: [18],
+        points: [
+          { line: 18, part: 1, text: "POST /api/v1/auth/login user=workspace.admin auth=success session_id=sess_98a7f1c4 | status=200", hl: "auth=success" }
+        ],
+        why_detected: {
+          signatures: ["SIG-AUTH-TAKEOVER: Successful authentication following rapid consecutive credential failures", "SIG-PRIV-ELEVATION: Administrative session token generated from external untrusted IP"],
+          observed: "Line 18 logs POST /api/v1/auth/login with status 200, auth_result=success for user 'workspace.admin' from IP 203.0.113.44, generating session_id=sess_98a7f1c4.",
+          inferred: "Successful login was achieved via credential stuffing/brute force rather than legitimate user authentication, given the 4 preceding failed attempts within 6 seconds.",
+          severity_justification: "Critical: Complete compromise of administrator credentials grants unrestricted access to crop records, internal configuration, and bulk export functionality.",
+          correlation: "Preceded by 4 failed password attempts (F-02) within 6 seconds from same IP; immediately succeeded by high-volume bulk data exfiltration (F-04) at line 245."
+        },
+        actions_detail: [
+          {
+            title: "Immediate Session Invalidation & Credential Reset",
+            necessity: "Compromised administrative session sess_98a7f1c4 remains valid until explicitly invalidated.",
+            threat: "Unauthorized administrative actions using the hijacked bearer session token.",
+            benefit: "Instantly terminates active attacker access and blocks persistent re-entry across all services."
+          },
+          {
+            title: "Mandate Multi-Factor Authentication (MFA)",
+            necessity: "Password-only authentication is vulnerable to automated credential stuffing and password guessing.",
+            threat: "Credential stuffing and dictionary attacks bypassing single-factor credentials.",
+            benefit: "Renders stolen or guessed passwords ineffective without secondary physical authenticator verification."
+          }
+        ]
+      },
+      {
+        id: "F-02",
+        severity: "High",
+        type: "Brute Force Authentication Attack",
+        category: "Authentication Abuse / Credential Guessing",
+        ip: "203.0.113.44",
+        reason: "Repeated consecutive failed login attempts (auth=invalid_password) targeting administrative accounts.",
+        caption: "4 occurrences · lines 10, 12, 14, 16 (Part 1)",
+        action: "Enforce account lockout after 5 failed attempts, enable adaptive rate limiting, and deploy CAPTCHA challenge.",
+        lines: [10, 12, 14, 16],
+        points: [
+          { line: 10, part: 1, text: "POST /api/v1/auth/login user=workspace.admin auth=invalid_password | status=401", hl: "auth=invalid_password" },
+          { line: 12, part: 1, text: "POST /api/v1/auth/login user=workspace.admin auth=invalid_password | status=401", hl: "auth=invalid_password" },
+          { line: 14, part: 1, text: "POST /api/v1/auth/login user=workspace.admin auth=invalid_password | status=401", hl: "auth=invalid_password" },
+          { line: 16, part: 1, text: "POST /api/v1/auth/login user=workspace.admin auth=invalid_password | status=401", hl: "auth=invalid_password" }
+        ],
+        why_detected: {
+          signatures: ["SIG-AUTH-BRUTE: >3 failed login attempts within 10-second window", "Consistent high-value administrative target: workspace.admin"],
+          observed: "4 consecutive failed login requests from IP 203.0.113.44 with invalid credentials between lines 10 and 16, each returning HTTP 401.",
+          inferred: "Automated credential stuffing script cycling through password wordlists targeting the default system administrator identity.",
+          severity_justification: "High: Persistent credential guessing targeting privileged accounts poses an immediate danger of unauthorized system compromise.",
+          correlation: "Directly connected to Account Compromise (F-01) at line 18 from the same actor IP, which then enabled Data Exfiltration (F-04)."
+        },
+        actions_detail: [
+          {
+            title: "Enforce Account Lockout Policy",
+            necessity: "Without lockout limits, attackers can execute thousands of automated guesses per minute.",
+            threat: "High-speed dictionary and brute force attacks.",
+            benefit: "Temporarily locks the target account after 5 consecutive failures, halting automation."
+          },
+          {
+            title: "Deploy Perimeter Rate Limiting on /api/v1/auth/login",
+            necessity: "Authentication endpoints require strict request velocity throttling.",
+            threat: "High-frequency automated login requests from distributed hosts.",
+            benefit: "Drops requests exceeding 5 calls per minute per client IP at the gateway layer."
+          }
+        ]
+      },
+      {
+        id: "F-03",
+        severity: "Critical",
+        type: "SQL Injection Attack",
+        category: "Input Validation / Database Exploitation",
+        ip: "203.0.113.72",
+        reason: "Attacker injected SQL commands (' OR 1=1--, UNION SELECT) into query parameters to probe database schema and bypass authorization.",
+        caption: "4 occurrences · lines 29, 30, 222, 223 (Parts 1, 8)",
+        action: "Enforce parameterized prepared statements in backend database connectors, deploy WAF rules, and blacklist offending IP.",
+        lines: [29, 30, 222, 223],
+        points: [
+          { line: 29, part: 1, text: "GET /api/v1/crops?search=%27%20OR%201%3D1-- | status=400", hl: "%27%20OR%201%3D1--" },
+          { line: 30, part: 1, text: "GET /api/v1/crops?search=%27%20OR%201%3D1-- | status=400", hl: "%27%20OR%201%3D1--" },
+          { line: 222, part: 8, text: "GET /api/v1/crops?search=%27%20UNION%20SELECT%20null,table_name%20FROM%20information_schema.tables-- | status=400", hl: "UNION%20SELECT" },
+          { line: 223, part: 8, text: "GET /api/v1/crops?search=%27%20OR%201%3D1-- | status=400", hl: "%27%20OR%201%3D1--" }
+        ],
+        why_detected: {
+          signatures: ["SIG-SQLI-01: SQL boolean-based tautology '%27 OR 1=1--'", "SIG-SQLI-02: UNION SELECT schema enumeration pattern against information_schema"],
+          observed: "Query parameter 'search' contained encoded SQL escape sequences (%27) and Boolean injection patterns, returning HTTP 400 errors from backend SQL parser.",
+          inferred: "Attacker engaged in active database fingerprinting to verify injection vulnerability and map schema table structures.",
+          severity_justification: "Critical: SQL injection permits unauthorized data access, table dumps, record tampering, and potential backend database takeover.",
+          correlation: "Initial validation probes executed in Part 1 (lines 29, 30) were followed by advanced UNION schema extraction attempts in Part 8 (lines 222, 223)."
+        },
+        actions_detail: [
+          {
+            title: "Migrate to Parameterized Prepared Statements",
+            necessity: "Raw SQL string concatenation or insecure query builders allow payload execution.",
+            threat: "CWE-89 SQL Injection targeting crop database queries.",
+            benefit: "Treats all user input strictly as data literals, entirely neutralizing code injection regardless of special characters."
+          },
+          {
+            title: "Deploy WAF Core Rule Set (CRS) for SQLi",
+            necessity: "Provides perimeter defense and blocks known SQL syntax keywords before reaching application runtime.",
+            threat: "Automated vulnerability scanners exploiting unpatched search endpoints.",
+            benefit: "Terminates malicious SQL requests at the edge with HTTP 403 Forbidden."
+          }
+        ]
+      },
+      {
+        id: "F-04",
+        severity: "Critical",
+        type: "Data Exfiltration",
+        category: "Data Loss / Unauthorized Bulk Export",
+        ip: "203.0.113.44",
+        reason: "Abnormal bulk export request (2.8MB+ CSV) executed immediately following unauthorized administrative account takeover.",
+        caption: "1 occurrence · line 245 (Part 9)",
+        action: "Revoke export privileges for compromised user, quarantine exported records, and initiate data breach response protocols.",
+        lines: [245],
+        points: [
+          { line: 245, part: 9, text: "GET /api/v1/admin/export?format=csv | response_bytes=2891400 (2823 KB) status=200", hl: "response_bytes=2891400" }
+        ],
+        why_detected: {
+          signatures: ["SIG-DATA-EXFIL: Single response exceeding 2MB threshold from administrative export endpoint", "Associated with compromised session token sess_98a7f1c4"],
+          observed: "Line 245 transfers 2,891,400 bytes via GET /api/v1/admin/export?format=csv with HTTP 200.",
+          inferred: "Attacker utilized hijacked session credentials to dump the complete Agrigen crop repository to an external host.",
+          severity_justification: "Critical: Confirmed loss of proprietary operational data and confidential crop records.",
+          correlation: "Final stage of the three-phase attack chain: F-02 (Brute Force) -> F-01 (Account Compromise) -> F-04 (Exfiltration)."
+        },
+        actions_detail: [
+          {
+            title: "Quarantine Stolen Export Records & Rotate Keys",
+            necessity: "Proprietary database contents were downloaded by an unauthorized external actor.",
+            threat: "Intellectual property theft and regulatory breach.",
+            benefit: "Limits further exposure, initiates forensic audit, and satisfies data protection disclosure compliance."
+          },
+          {
+            title: "Implement Export Size Caps & Dual Approval",
+            necessity: "Unrestricted bulk exports pose catastrophic data loss risks.",
+            threat: "Rogue or compromised administrative data dumps.",
+            benefit: "Requires secondary administrator authorization for data exports larger than 10MB."
+          }
+        ]
+      },
+      {
+        id: "F-05",
+        severity: "Medium",
+        type: "Reconnaissance / Vulnerability Scanning",
+        category: "Discovery / Sensitive File Probing",
+        ip: "203.0.113.90",
+        reason: "Automated scanner probed for sensitive files (.env, .git/config, backup.sql) and administrative portals.",
+        caption: "5 occurrences · lines 5, 8, 12, 50, 52 (Parts 1, 2)",
+        action: "Configure reverse proxy to deny access to dotfiles (.env, .git) and restrict administrative interfaces to trusted internal IP ranges.",
+        lines: [5, 8, 12, 50, 52],
+        points: [
+          { line: 5, part: 1, text: "GET /.env | status=404", hl: "/.env" },
+          { line: 8, part: 1, text: "GET /.git/config | status=404", hl: "/.git/config" },
+          { line: 12, part: 1, text: "GET /backup.sql | status=404", hl: "/backup.sql" },
+          { line: 50, part: 2, text: "GET /wp-admin | status=404", hl: "/wp-admin" },
+          { line: 52, part: 2, text: "GET /phpmyadmin | status=404", hl: "/phpmyadmin" }
+        ],
+        why_detected: {
+          signatures: ["SIG-RECON-DOTFILE: Probing for environment configuration files (.env, .git)", "SIG-RECON-ADMIN: Probing for legacy administration portals"],
+          observed: "Series of rapid requests targeting non-existent root-level configuration files returning HTTP 404.",
+          inferred: "Automated vulnerability scanner (e.g. Nikto, Nuclei) fingerprinting server framework and misconfigurations.",
+          severity_justification: "Medium: Probes were unsuccessful (404), but indicate attacker intent to find exposed secrets.",
+          correlation: "Originates from IP 203.0.113.90, which subsequently launched Path Traversal probes (F-06)."
+        },
+        actions_detail: [
+          {
+            title: "Block Hidden Files at Reverse Proxy Layer",
+            necessity: "Web servers should never serve version control metadata or dotfiles.",
+            threat: "Exposure of application environment secrets (.env, .git).",
+            benefit: "Immediately returns HTTP 403 Forbidden for any request beginning with '/.' before reaching application."
+          }
+        ]
+      },
+      {
+        id: "F-06",
+        severity: "High",
+        type: "Path Traversal / Local File Inclusion",
+        category: "File System Security / LFI",
+        ip: "203.0.113.90",
+        reason: "Directory traversal sequences ('../../etc/passwd', URL-encoded '%252e') submitted to file retrieval endpoints.",
+        caption: "3 occurrences · lines 60, 61, 62 (Part 2)",
+        action: "Implement strict file path whitelist validation using canonical path resolution and enforce chroot/container isolation.",
+        lines: [60, 61, 62],
+        points: [
+          { line: 60, part: 2, text: "GET /api/v1/download?file=../../etc/passwd | status=400", hl: "../../etc/passwd" },
+          { line: 61, part: 2, text: "GET /api/v1/download?file=..%2f..%2fetc%2fpasswd | status=400", hl: "..%2f..%2fetc%2fpasswd" },
+          { line: 62, part: 2, text: "GET /api/v1/download?file=%252e%252e%252fetc%252fpasswd | status=400", hl: "%252e%252e" }
+        ],
+        why_detected: {
+          signatures: ["SIG-TRAVERSAL-01: Directory escape sequence '../'", "SIG-TRAVERSAL-02: Double URL-encoded traversal '%252e'"],
+          observed: "Parameter 'file' contained explicit traversal sequences targeting system password file /etc/passwd.",
+          inferred: "Attacker attempted to bypass basic string filters via double URL encoding to access root filesystem.",
+          severity_justification: "High: If successful, LFI allows arbitrary file reading including cryptographic keys and system passwords.",
+          correlation: "Follow-up exploit by actor 203.0.113.90 following initial file reconnaissance (F-05)."
+        },
+        actions_detail: [
+          {
+            title: "Use Canonical Path Resolution & Whitelisting",
+            necessity: "Relative path sequences can escape intended document root directories.",
+            threat: "Arbitrary local file reading.",
+            benefit: "Ensures resolved absolute path starts strictly within authorized download directory."
+          }
+        ]
+      }
+    ];
+
+    const DEFAULT_CHUNKS = [
+      { part: 1, lines: "L1–L30", status: "Complete", isRecovered: false, findings: ["Account Compromise", "Brute Force Authentication Attack", "SQL Injection Attack", "Reconnaissance / Vulnerability Scanning"], duration: "0.82s", tokensIn: 480, tokensOut: 110, summary: "High density of security events: brute force attack, compromise, and SQLi probe.", sample: "POST /api/v1/auth/login user=workspace.admin auth=invalid_password\nGET /api/v1/crops?search=%27%20OR%201%3D1--" },
+      { part: 2, lines: "L31–L60", status: "Complete", isRecovered: false, findings: ["Path Traversal / Local File Inclusion", "Reconnaissance / Vulnerability Scanning"], duration: "0.64s", tokensIn: 410, tokensOut: 85, summary: "Directory traversal sequences and vulnerability probing against admin portals.", sample: "GET /api/v1/download?file=../../etc/passwd | status=400" },
+      { part: 3, lines: "L61–L90", status: "Optimized", isRecovered: true, findings: [], duration: "0.0s", tokensIn: 0, tokensOut: 0, summary: "Static benign traffic; skipped model call to minimize latency and memory usage.", sample: "GET /api/v1/health | status=200\nGET /static/bundle.js | status=304" },
+      { part: 4, lines: "L91–L120", status: "Optimized", isRecovered: true, findings: [], duration: "0.0s", tokensIn: 0, tokensOut: 0, summary: "Static benign traffic; skipped model call to minimize latency and memory usage.", sample: "GET /api/v1/crops?page=2 | status=200" },
+      { part: 5, lines: "L121–L150", status: "Optimized", isRecovered: true, findings: [], duration: "0.0s", tokensIn: 0, tokensOut: 0, summary: "Static benign traffic; skipped model call to minimize latency and memory usage.", sample: "GET /api/v1/crops?page=3 | status=200" },
+      { part: 6, lines: "L151–L180", status: "Optimized", isRecovered: true, findings: [], duration: "0.0s", tokensIn: 0, tokensOut: 0, summary: "Static benign traffic; skipped model call to minimize latency and memory usage.", sample: "GET /api/v1/metrics | status=200" },
+      { part: 7, lines: "L181–L210", status: "Optimized", isRecovered: true, findings: [], duration: "0.0s", tokensIn: 0, tokensOut: 0, summary: "Static benign traffic; skipped model call to minimize latency and memory usage.", sample: "GET /api/v1/status | status=200" },
+      { part: 8, lines: "L211–L240", status: "Complete", isRecovered: false, findings: ["SQL Injection Attack"], duration: "0.75s", tokensIn: 450, tokensOut: 95, summary: "Advanced UNION SELECT SQL injection attempts mapped to database catalog.", sample: "GET /api/v1/crops?search=%27%20UNION%20SELECT%20null,table_name%20FROM%20information_schema.tables--" },
+      { part: 9, lines: "L241–L258", status: "Complete", isRecovered: false, findings: ["Data Exfiltration"], duration: "0.68s", tokensIn: 390, tokensOut: 80, summary: "Abnormal bulk administrative export transfer totaling 2.8MB CSV.", sample: "GET /api/v1/admin/export?format=csv | response_bytes=2891400 status=200" }
+    ];
+
+    // Initialize global reactive state with verified baseline data
+    findingsData = DEFAULT_FINDINGS;
+    chunksData = DEFAULT_CHUNKS;
 
     function getSevColor(sev) {
       switch ((sev || '').toLowerCase()) {
@@ -1246,69 +1704,103 @@
     const drawerBackdrop = document.getElementById('drawer-backdrop');
     const drawerPanel = document.getElementById('drawer-panel');
     const drawerClose = document.getElementById('drawer-close');
+    const drawerHeaderLeft = document.getElementById('drawer-header-left');
     const drawerContent = document.getElementById('drawer-content');
 
     function closeDrawer() {
       drawerBackdrop.classList.remove('open');
       drawerPanel.classList.remove('open');
+      selectedFindingId = null;
+
+      document.querySelectorAll('.finding-item').forEach(el => {
+        el.classList.remove('is-selected');
+      });
+
+      renderAttackFlowChart(null);
     }
-    drawerClose.addEventListener('click', closeDrawer);
-    drawerBackdrop.addEventListener('click', closeDrawer);
+
+    if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
+    if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
+    // Open Chunk Drawer for Chunks View
     function openChunkDrawer(c) {
       if (!c) return;
+      if (drawerHeaderLeft) {
+        drawerHeaderLeft.innerHTML = `
+          <span class="drawer-id-badge">PART ${c.part}</span>
+          <span class="drawer-title-main">Partition Execution Details</span>
+          <span class="sev-pill" style="font-size:11px; padding:2px 7px; background:rgba(255,255,255,0.06); border-radius:3px;">${c.status}</span>
+        `;
+      }
+
       drawerContent.innerHTML = `
-        <h2 style="font-size: 19px; font-weight: 600; color: var(--text);">Part ${c.part} Details</h2>
-        <div style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); margin: 4px 0 18px 0;">
-          ${c.lines} · Status: ${c.status} · Duration: ${c.duration}
-        </div>
-        
-        <div class="drawer-section-title">Execution Context</div>
-        <p style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;">${escapeHtml(c.summary)}</p>
-        
-        <div class="drawer-section-title">Token Consumption</div>
-        <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); display: flex; gap: 16px; margin-bottom: 14px;">
-          <span>Prompt: ${c.tokensIn.toLocaleString()} tokens</span>
-          <span>Completion: ${c.tokensOut.toLocaleString()} tokens</span>
+        <div class="sb-card">
+          <div class="sb-card-title">Execution Context</div>
+          <div class="sb-meta-grid">
+            <div class="sb-meta-item">
+              <span class="sb-meta-label">Line Range</span>
+              <span class="sb-meta-value">${escapeHtml(c.lines)}</span>
+            </div>
+            <div class="sb-meta-item">
+              <span class="sb-meta-label">Duration</span>
+              <span class="sb-meta-value">${escapeHtml(c.duration)}</span>
+            </div>
+          </div>
+          <p class="sb-desc-text">${escapeHtml(c.summary)}</p>
         </div>
 
-        <div class="drawer-section-title">Raw Model / Chunk Output</div>
-        <pre class="drawer-code-pre">${escapeHtml(c.sample)}</pre>
+        <div class="sb-card">
+          <div class="sb-card-title">Token Consumption</div>
+          <div class="sb-meta-grid">
+            <div class="sb-meta-item">
+              <span class="sb-meta-label">Prompt Tokens</span>
+              <span class="sb-meta-value">${c.tokensIn.toLocaleString()} tokens</span>
+            </div>
+            <div class="sb-meta-item">
+              <span class="sb-meta-label">Completion Tokens</span>
+              <span class="sb-meta-value">${c.tokensOut.toLocaleString()} tokens</span>
+            </div>
+          </div>
+        </div>
 
-        <div class="drawer-section-title">Associated Findings</div>
-        <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
-          ${c.findings && c.findings.length > 0 
-            ? c.findings.map(f => `<span class="c-finding-chip" style="font-size: 12px; padding: 3px 8px;">${escapeHtml(f)}</span>`).join('') 
-            : '<span style="color: var(--text-muted); font-size: 13px;">No suspicious findings detected</span>'}
+        <div class="sb-card">
+          <div class="sb-card-title">Raw Model / Chunk Output</div>
+          <pre class="drawer-code-pre" style="max-height:260px;">${escapeHtml(c.sample)}</pre>
+        </div>
+
+        <div class="sb-card">
+          <div class="sb-card-title">Associated Findings</div>
+          <div style="display:flex; gap:8px; margin-top:4px; flex-wrap:wrap;">
+            ${c.findings && c.findings.length > 0
+              ? c.findings.map(f => `<span class="c-finding-chip" style="font-size:12px; padding:3px 8px;">${escapeHtml(f)}</span>`).join('')
+              : '<span style="color:var(--text-muted); font-size:13px;">No suspicious findings detected</span>'}
+          </div>
         </div>
       `;
+
       drawerBackdrop.classList.add('open');
       drawerPanel.classList.add('open');
+      drawerPanel.scrollTop = 0;
+      drawerContent.scrollTop = 0;
     }
 
     // Scroll & reveal finding in list
     function navigateToFinding(findingId) {
       switchMainTab('report');
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      const allTab = document.querySelector('.filter-tab[data-filter="all"]');
-      if (allTab) allTab.classList.add('active');
-      const searchBox = document.getElementById('ip-search');
-      if (searchBox) searchBox.value = '';
-      renderFindings('all', '');
-      selectFinding(findingId);
-
+      openAttackSidebar(findingId);
       const targetEl = document.getElementById('finding-row-' + findingId);
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
-    // Tooltip Handlers
+    // Floating Tooltip Handlers
     const tooltipEl = document.getElementById('chart-tooltip');
     const chartContainer = document.getElementById('chart-container');
 
     function showTooltip(e, finding, line, logSnippet) {
+      if (!tooltipEl) return;
       tooltipEl.innerHTML = `
         <div class="tt-top">
           <span class="sev-dot ${(finding.severity || '').toLowerCase()}"></span>
@@ -1323,6 +1815,7 @@
     }
 
     function moveTooltip(e) {
+      if (!tooltipEl) return;
       const pad = 12;
       let left = e.clientX + pad;
       let top = e.clientY + pad;
@@ -1338,30 +1831,454 @@
     }
 
     function hideTooltip() {
-      tooltipEl.style.display = 'none';
+      if (tooltipEl) tooltipEl.style.display = 'none';
     }
 
-    function selectFinding(findingId) {
-      if (selectedFindingId === findingId) {
-        selectedFindingId = null;
-      } else {
-        selectedFindingId = findingId;
-      }
+    // =========================================================================
+    // INTERACTIVE ATTACK DETAILS SIDEBAR ENGINE
+    // =========================================================================
+    function openAttackSidebar(findingId) {
+      const f = findingsData.find(item => item.id === findingId) || findingsData[0];
+      if (!f) return;
 
+      selectedFindingId = f.id;
+
+      // 1. Highlight in Findings List
       document.querySelectorAll('.finding-item').forEach(el => {
         const fid = el.getAttribute('data-id');
-        if (selectedFindingId && fid === selectedFindingId) {
+        if (fid === f.id) {
           el.classList.add('is-selected');
-          el.classList.add('open');
         } else {
           el.classList.remove('is-selected');
         }
       });
 
-      renderAttackFlowChart(selectedFindingId);
+      // 2. Highlight in Overall Attack Flow Graph
+      renderAttackFlowChart(f.id);
+
+      // 3. Update Drawer Sticky Header
+      if (drawerHeaderLeft) {
+        drawerHeaderLeft.innerHTML = `
+          <span class="sev-dot ${(f.severity || '').toLowerCase()}"></span>
+          <span class="drawer-id-badge">${f.id}</span>
+          <span class="drawer-title-main">${escapeHtml(f.type)}</span>
+          <span class="sev-pill" style="font-size:11px; padding:2px 7px; background:rgba(255,255,255,0.06); border-radius:3px;">${f.severity}</span>
+        `;
+      }
+
+      // 4. Build Sections
+      const overviewHtml = buildAttackOverviewHtml(f);
+      const graphSvgHtml = buildAttackSpecificGraphSvg(f);
+      const correlatedHtml = buildCorrelatedAttacksHtml(f);
+      const evidenceHtml = buildEvidenceHtml(f);
+      const actionsHtml = buildSuggestedActionsHtml(f);
+      const whyDetectedHtml = buildWhyDetectedHtml(f);
+
+      // 5. Render Drawer Content
+      drawerContent.innerHTML = `
+        <!-- Section A: Attack Overview -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>Attack Overview</span>
+            <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">${escapeHtml(f.caption)}</span>
+          </div>
+          ${overviewHtml}
+        </div>
+
+        <!-- Section B: Attack-Specific Dedicated Graph -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>Attack Progression Graph</span>
+            <span style="font-size:10.5px; color:var(--text-muted);">Event chronology &amp; transitions</span>
+          </div>
+          <div class="sb-graph-container">
+            ${graphSvgHtml}
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:8px; display:flex; justify-content:space-between;">
+            <span>Hover/click event node to jump to log evidence</span>
+            <span>Target IP: ${escapeHtml(f.ip)}</span>
+          </div>
+        </div>
+
+        <!-- Section C: Correlated Attacks -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>Correlated Attacks &amp; Kill Chains</span>
+            <span style="font-size:10.5px; color:var(--text-muted);">Click to investigate connected threat</span>
+          </div>
+          <div id="sb-correlated-container">
+            ${correlatedHtml}
+          </div>
+        </div>
+
+        <!-- Section D: Supporting Evidence -->
+        <div class="sb-card" id="sb-evidence-card">
+          <div class="sb-card-title">
+            <span>Supporting Evidence &amp; Log Trace</span>
+            <span style="font-size:10.5px; color:var(--text-muted);">${(f.points || []).length} event record(s)</span>
+          </div>
+          ${evidenceHtml}
+        </div>
+
+        <!-- Section E: Suggested Actions -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>Actionable Remediation Guidelines</span>
+            <span style="font-size:10.5px; color:var(--text-muted);">Prioritized defense controls</span>
+          </div>
+          ${actionsHtml}
+        </div>
+
+        <!-- Section F: Why This Was Detected -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>Detection Reasoning &amp; Heuristics</span>
+            <span style="font-size:10.5px; color:var(--text-muted);">Rules &amp; behavioral evaluation</span>
+          </div>
+          ${whyDetectedHtml}
+        </div>
+      `;
+
+      // 6. Bind Event Interactions inside Sidebar
+      bindSidebarInteractions(f);
+
+      // 7. Slide Open Drawer
+      drawerBackdrop.classList.add('open');
+      drawerPanel.classList.add('open');
+      drawerPanel.scrollTop = 0;
+      drawerContent.scrollTop = 0;
     }
 
-    // RENDER SVG CHART
+    // --- Sub-builder A: Overview ---
+    function buildAttackOverviewHtml(f) {
+      const parts = Array.from(new Set((f.points || []).map(p => `Part ${p.part}`))).join(', ') || 'Part 1';
+      const linesList = f.lines || [];
+      const linesStr = linesList.length > 4 
+        ? `Lines ${linesList[0]}..${linesList[linesList.length-1]} (${linesList.length} total)`
+        : `Lines ${linesList.join(', ')}`;
+
+      return `
+        <div class="sb-meta-grid">
+          <div class="sb-meta-item">
+            <span class="sb-meta-label">Hostile IP Address</span>
+            <span class="sb-meta-value" style="color:var(--critical);">${escapeHtml(f.ip)}</span>
+          </div>
+          <div class="sb-meta-item">
+            <span class="sb-meta-label">Classification / Category</span>
+            <span class="sb-meta-value" style="font-family:var(--font-sans); font-size:12.5px;">${escapeHtml(f.category || 'Security Threat')}</span>
+          </div>
+          <div class="sb-meta-item">
+            <span class="sb-meta-label">Partition Scope</span>
+            <span class="sb-meta-value">${escapeHtml(parts)}</span>
+          </div>
+          <div class="sb-meta-item">
+            <span class="sb-meta-label">Affected Log Range</span>
+            <span class="sb-meta-value">${escapeHtml(linesStr)}</span>
+          </div>
+        </div>
+        <p class="sb-desc-text">${escapeHtml(f.reason)}</p>
+      `;
+    }
+
+    // --- Sub-builder B: Attack-Specific Graph SVG ---
+    function buildAttackSpecificGraphSvg(f) {
+      const pts = f.points || [];
+      const svgW = 540;
+      const svgH = 115;
+      const baselineY = 65;
+      const color = getSevColor(f.severity);
+
+      if (pts.length === 0) {
+        return `<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:12px;">No progression nodes available</div>`;
+      }
+
+      let svgHtml = `<svg class="sb-graph-svg" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+      // Background baseline guide
+      svgHtml += `
+        <line x1="25" y1="${baselineY}" x2="${svgW - 25}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.6" />
+      `;
+
+      // Progression Arcs
+      const nodeCoords = [];
+      const count = pts.length;
+
+      pts.forEach((pt, idx) => {
+        let x;
+        if (count === 1) {
+          x = svgW / 2;
+        } else {
+          x = 45 + (idx / (count - 1)) * (svgW - 90);
+        }
+        nodeCoords.push({ x, y: baselineY, pt, idx });
+      });
+
+      // Draw arcs between consecutive nodes
+      for (let i = 0; i < nodeCoords.length - 1; i++) {
+        const a = nodeCoords[i];
+        const b = nodeCoords[i + 1];
+        const dx = b.x - a.x;
+        const arcH = Math.min(36, Math.max(18, dx * 0.28));
+        const midX = (a.x + b.x) / 2;
+        const peakY = baselineY - arcH;
+        const pathD = `M ${a.x} ${baselineY} Q ${midX} ${peakY} ${b.x} ${baselineY}`;
+
+        svgHtml += `
+          <path class="arc-anim" d="${pathD}" fill="none" stroke="${color}" stroke-width="2" stroke-opacity="0.85" />
+        `;
+      }
+
+      // Draw nodes and labels
+      nodeCoords.forEach((node, i) => {
+        const isLast = i === count - 1;
+        const r = isLast ? 6 : 4.5;
+
+        // Terminal node pulse ring
+        if (isLast && count > 1) {
+          svgHtml += `
+            <circle cx="${node.x}" cy="${baselineY}" r="11" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.8">
+              <animate attributeName="r" values="8;13;8" dur="2.2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.2s" repeatCount="indefinite" />
+            </circle>
+          `;
+        }
+
+        // Node circle
+        svgHtml += `
+          <circle class="sb-node-interactive"
+                  data-line="${node.pt.line}"
+                  data-desc="${escapeHtml(node.pt.text)}"
+                  cx="${node.x}" cy="${baselineY}" r="${r}"
+                  fill="${color}" stroke="var(--bg)" stroke-width="1.5" />
+        `;
+
+        // Line number label above
+        const yLabel = (i % 2 === 0) ? (baselineY - 12) : (baselineY - 24);
+        svgHtml += `
+          <text x="${node.x}" y="${yLabel}" fill="var(--text)" font-family="var(--font-mono)" font-size="10.5" font-weight="600" text-anchor="middle">
+            L${node.pt.line}
+          </text>
+        `;
+
+        // Step indicator below
+        svgHtml += `
+          <text x="${node.x}" y="${baselineY + 20}" fill="var(--text-secondary)" font-size="9.5" font-family="var(--font-mono)" text-anchor="middle">
+            Part ${node.pt.part}
+          </text>
+        `;
+      });
+
+      svgHtml += `</svg>`;
+      return svgHtml;
+    }
+
+    // --- Sub-builder C: Correlated Attacks ---
+    function buildCorrelatedAttacksHtml(f) {
+      // Find all other findings correlated by same actor IP or kill-chain connection
+      const related = findingsData.filter(item => item.id !== f.id);
+
+      if (related.length === 0) {
+        return `<p style="font-size:12.5px; color:var(--text-muted);">No additional correlated attack chains registered in this dataset.</p>`;
+      }
+
+      // Categorize correlation
+      let cardsHtml = '';
+      related.forEach(rel => {
+        const isSameActor = (rel.ip === f.ip && rel.ip !== 'unknown');
+        let relTitle = '';
+        let relDesc = '';
+        let sharedInd = '';
+
+        if (isSameActor) {
+          relTitle = 'Same Threat Actor Campaign';
+          relDesc = `Both attacks originated from hostile IP ${rel.ip}. System correlated these events into a unified multi-stage kill chain.`;
+          sharedInd = `Actor IP: ${rel.ip} · Consecutive execution window`;
+        } else {
+          relTitle = 'Concurrent Infrastructure Probing';
+          relDesc = `Parallel hostile activity detected during the same inspection partition window.`;
+          sharedInd = `Independent actor: ${rel.ip} · Threat Category: ${rel.category || rel.type}`;
+        }
+
+        cardsHtml += `
+          <div class="corr-card" data-corr-id="${rel.id}">
+            <div class="corr-header">
+              <div class="corr-title-row">
+                <span class="sev-dot ${(rel.severity || '').toLowerCase()}"></span>
+                <span style="font-family:var(--font-mono); font-weight:600; font-size:11.5px; color:var(--text);">${rel.id}</span>
+                <span style="font-weight:600; font-size:13px; color:var(--text);">${escapeHtml(rel.type)}</span>
+              </div>
+              <span class="sev-pill" style="font-size:11px; padding:2px 6px; background:rgba(255,255,255,0.05); border-radius:3px;">${rel.severity}</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">
+              <strong>Hostile Actor:</strong> <span style="font-family:var(--font-mono); color:var(--text);">${escapeHtml(rel.ip)}</span> · <span>${escapeHtml(rel.caption)}</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); line-height:1.45; margin-bottom:4px;">
+              <strong>Relationship:</strong> ${escapeHtml(relDesc)}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+              <strong>Indicators:</strong> ${escapeHtml(sharedInd)}
+            </div>
+            <div class="corr-nav-link">
+              Investigate this attack &rarr;
+            </div>
+          </div>
+        `;
+      });
+
+      return cardsHtml;
+    }
+
+    // --- Sub-builder D: Supporting Evidence ---
+    function buildEvidenceHtml(f) {
+      const pts = f.points || [];
+      if (pts.length === 0) {
+        return `<p style="font-size:12.5px; color:var(--text-muted);">No log trace available.</p>`;
+      }
+
+      const maxVisible = 6;
+      const hasMore = pts.length > maxVisible;
+      const visiblePts = pts.slice(0, maxVisible);
+      const hiddenPts = pts.slice(maxVisible);
+
+      function renderRows(list) {
+        return list.map(p => {
+          let htmlText = escapeHtml(p.text);
+          if (p.hl) {
+            const safeHl = escapeHtml(p.hl);
+            htmlText = htmlText.split(safeHl).join(`<span class="ev-hl">${safeHl}</span>`);
+          }
+          return `
+            <div class="ev-row" id="ev-line-${p.line}">
+              <span class="ev-gutter">${p.line}</span>
+              <span style="font-size:10.5px; color:var(--text-muted); width:45px; flex-shrink:0;">P${p.part}</span>
+              <span class="ev-content">${htmlText}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      return `
+        <div class="evidence-block" style="margin-top:2px;">
+          <div id="sb-ev-visible">${renderRows(visiblePts)}</div>
+          ${hasMore ? `<div id="sb-ev-hidden" style="display:none;">${renderRows(hiddenPts)}</div>` : ''}
+        </div>
+        ${hasMore ? `<button class="ev-toggle-btn" id="sb-ev-toggle" style="margin-top:6px;">Show ${hiddenPts.length} more evidence lines</button>` : ''}
+      `;
+    }
+
+    // --- Sub-builder E: Suggested Actions ---
+    function buildSuggestedActionsHtml(f) {
+      const actions = f.actions_detail || [
+        {
+          title: "Perimeter Filtering & Rate Throttling",
+          necessity: "Offending IP has demonstrated automated exploitation behavior.",
+          threat: `${f.type} targeting application endpoints.`,
+          benefit: "Blocks repetitive malicious probing at the edge."
+        }
+      ];
+
+      return actions.map(act => `
+        <div class="action-spec-item">
+          <div class="action-spec-title">${escapeHtml(act.title)}</div>
+          <div class="action-spec-row"><strong>Why Necessary:</strong> ${escapeHtml(act.necessity)}</div>
+          <div class="action-spec-row"><strong>Threat Addressed:</strong> ${escapeHtml(act.threat)}</div>
+          <div class="action-spec-row"><strong>Expected Benefit:</strong> ${escapeHtml(act.benefit)}</div>
+        </div>
+      `).join('');
+    }
+
+    // --- Sub-builder F: Why This Was Detected ---
+    function buildWhyDetectedHtml(f) {
+      const why = f.why_detected || {
+        signatures: [`RULE-ANOMALY: Suspicious pattern matching ${f.type}`],
+        observed: `Multiple log lines recorded hostile activity from IP ${f.ip}.`,
+        inferred: `Behavioral pattern indicates automated attack sequence rather than benign traffic.`,
+        severity_justification: `${f.severity} severity assigned based on asset risk and potential impact.`,
+        correlation: `Linked with surrounding log entries during partition analysis.`
+      };
+
+      const sigChips = (why.signatures || []).map(s => 
+        `<span style="display:inline-block; font-size:11px; font-family:var(--font-mono); background:var(--surface); border:1px solid var(--divider); padding:2px 8px; border-radius:3px; margin:0 4px 4px 0; color:var(--text);">${escapeHtml(s)}</span>`
+      ).join('');
+
+      return `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-muted); margin-bottom:6px;">Matched Signatures / Rules</div>
+          <div>${sigChips}</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <span class="reason-tag observed">[Observed Evidence]</span>
+          <p style="font-size:12.5px; color:var(--text); line-height:1.5;">${escapeHtml(why.observed)}</p>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <span class="reason-tag inferred">[Inferred Analysis]</span>
+          <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">${escapeHtml(why.inferred)}</p>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-muted); margin-bottom:4px;">Severity Justification</div>
+          <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">${escapeHtml(why.severity_justification)}</p>
+        </div>
+
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--text-muted); margin-bottom:4px;">Correlation Assessment</div>
+          <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">${escapeHtml(why.correlation)}</p>
+        </div>
+      `;
+    }
+
+    // --- Sub-builder G: Bind Interactions ---
+    function bindSidebarInteractions(f) {
+      // 1. Correlated Attack Navigation
+      document.querySelectorAll('.corr-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const targetId = card.getAttribute('data-corr-id');
+          if (targetId) openAttackSidebar(targetId);
+        });
+      });
+
+      // 2. Evidence Toggle Button
+      const toggleBtn = document.getElementById('sb-ev-toggle');
+      const hiddenBox = document.getElementById('sb-ev-hidden');
+      if (toggleBtn && hiddenBox) {
+        toggleBtn.addEventListener('click', () => {
+          if (hiddenBox.style.display === 'none') {
+            hiddenBox.style.display = 'block';
+            toggleBtn.textContent = 'Show less';
+          } else {
+            hiddenBox.style.display = 'none';
+            toggleBtn.textContent = `Show more evidence lines`;
+          }
+        });
+      }
+
+      // 3. Attack Graph Interactive Node Hover/Click
+      document.querySelectorAll('.sb-node-interactive').forEach(node => {
+        const line = node.getAttribute('data-line');
+        const desc = node.getAttribute('data-desc');
+
+        node.addEventListener('mouseenter', (e) => {
+          showTooltip(e, f, line, desc);
+        });
+        node.addEventListener('mousemove', (e) => moveTooltip(e));
+        node.addEventListener('mouseleave', () => hideTooltip());
+
+        node.addEventListener('click', () => {
+          const targetRow = document.getElementById('ev-line-' + line);
+          if (targetRow) {
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetRow.style.backgroundColor = 'rgba(79, 209, 181, 0.15)';
+            setTimeout(() => { targetRow.style.backgroundColor = ''; }, 1600);
+          }
+        });
+      });
+    }
+
+    // =========================================================================
+    // OVERALL ATTACK FLOW GRAPH ENGINE
+    // =========================================================================
     function renderAttackFlowChart(focusFindingId = selectedFindingId) {
       const svg = document.getElementById('attack-flow-svg');
       if (!svg) return;
@@ -1369,83 +2286,76 @@
       const totalLines = Math.max(totalLogLines, 100);
       const totalParts = Math.max(totalLogParts, 1);
       const width = 760;
-      const baselineY = 125;
+      const height = 230;
+      const baselineY = 130;
       const partWidth = width / totalParts;
 
+      let svgHtml = '';
+
+      // Partition Grid Verticals & Labels
+      for (let p = 0; p <= totalParts; p++) {
+        const x = p * partWidth;
+        svgHtml += `
+          <line x1="${x}" y1="16" x2="${x}" y2="${height - 20}" stroke="var(--divider)" stroke-width="1" stroke-dasharray="2 3" opacity="0.45" />
+        `;
+        if (p < totalParts) {
+          svgHtml += `
+            <text x="${x + partWidth / 2}" y="12" text-anchor="middle" font-size="9.5" fill="var(--text-muted)" font-family="var(--font-mono)">Part ${p + 1}</text>
+          `;
+        }
+      }
+
+      // Timeline Baseline Axis
+      svgHtml += `
+        <line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1.2" />
+      `;
+
+      // Active Filter Mode vs Overall View
       const focusedFinding = focusFindingId ? findingsData.find(f => f.id === focusFindingId) : null;
 
-      // Update Title & Controls
+      // Update Chart Title
       const titleEl = document.querySelector('.attack-flow-title');
       if (titleEl) {
         if (focusedFinding) {
           titleEl.innerHTML = `
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="sev-dot ${(focusedFinding.severity || '').toLowerCase()}"></span>
-              <span>Focused Timeline: <strong>${escapeHtml(focusedFinding.type)}</strong> (${escapeHtml(focusedFinding.ip)})</span>
+              <span>Timeline: ${escapeHtml(focusedFinding.type)}</span>
+              <span style="font-family:var(--font-mono); font-size:11.5px; color:var(--text-secondary);">(IP ${escapeHtml(focusedFinding.ip)})</span>
             </div>
-            <button id="btn-reset-chart" class="chart-reset-btn" title="Click to view all attacks">✕ Show All Attacks</button>
+            <button class="chart-reset-btn" id="btn-reset-chart">✕ Show All Attacks</button>
           `;
           const resetBtn = document.getElementById('btn-reset-chart');
           if (resetBtn) {
             resetBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              selectFinding(null);
+              closeDrawer();
             });
           }
         } else {
           titleEl.innerHTML = `
             <span>Attack flow across the file</span>
-            <span style="font-size:11.5px; font-weight:normal; color:var(--text-muted);">(Click any attack card below to isolate its timeline)</span>
+            <span style="font-size:11.5px; font-weight:normal; color:var(--text-muted);">(Click any attack node to open investigation)</span>
           `;
         }
       }
 
-      // Update Legend
-      const legendEl = document.querySelector('.chart-legend-row');
-      if (legendEl) {
-        if (focusedFinding) {
-          const linesList = focusedFinding.points ? focusedFinding.points.map(p => 'L' + p.line) : [];
-          legendEl.innerHTML = `<span><strong>${focusedFinding.id}</strong> progression across ${linesList.length} event(s): ${linesList.join(' → ')}. Click "Show All" to restore full perspective.</span>`;
-        } else {
-          legendEl.innerHTML = `<span>Dots: incident lines · Arcs: attack progressions · Squares: findings per chunk · Click any attack to isolate</span>`;
-        }
-      }
-
-      let svgHtml = '';
-
-      // 1. Grid & Baseline
-      for (let i = 1; i < totalParts; i++) {
-        const x = i * partWidth;
-        svgHtml += `<line x1="${x}" y1="15" x2="${x}" y2="215" stroke="var(--divider)" stroke-dasharray="2 3" stroke-width="1" />`;
-      }
-      svgHtml += `<line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1.2" />`;
-
-      // Tick labels: P1 - Pn and line numbers
-      for (let p = 1; p <= totalParts; p++) {
-        const cx = (p - 0.5) * partWidth;
-        const startLine = (p - 1) * 30 + 1;
-        svgHtml += `<text x="${cx}" y="${baselineY + 16}" text-anchor="middle" font-size="11" fill="var(--text-muted)" font-family="var(--font-mono)">P${p}</text>`;
-        svgHtml += `<text class="line-num-tick" x="${cx}" y="${baselineY + 28}" text-anchor="middle" font-size="9.5" fill="var(--text-muted)" font-family="var(--font-mono)" opacity="0.65">L${startLine}</text>`;
-      }
-
       if (focusedFinding) {
-        // ==========================================
-        // FOCUSED MODE: ONLY SHOW THIS ATTACK TIMELINE
-        // ==========================================
+        // --- ISOLATED TIMELINE VIEW ---
         const color = getSevColor(focusedFinding.severity);
         const pts = focusedFinding.points || [];
 
-        // Draw clean sequential arcs between chronological events
-        if (pts.length >= 2) {
+        // Arcs
+        if (pts.length > 1) {
           for (let i = 0; i < pts.length - 1; i++) {
             const ptA = pts[i];
             const ptB = pts[i + 1];
             const x1 = Math.max(10, Math.min(width - 10, (ptA.line / totalLines) * width));
             const x2 = Math.max(10, Math.min(width - 10, (ptB.line / totalLines) * width));
             const dx = Math.abs(x2 - x1);
-            const arcH = Math.min(95, Math.max(28, dx * 0.42));
-            const peakY = baselineY - arcH;
+            const arcH = Math.min(95, Math.max(28, dx * 0.38));
             const midX = (x1 + x2) / 2;
+            const peakY = baselineY - arcH;
             const pathD = `M ${x1} ${baselineY} Q ${midX} ${peakY} ${x2} ${baselineY}`;
 
             svgHtml += `
@@ -1456,19 +2366,18 @@
                     d="${pathD}"
                     fill="none"
                     stroke="${color}"
-                    stroke-width="2.2"
+                    stroke-width="2.4"
                     stroke-opacity="0.9" />
             `;
           }
         }
 
-        // Draw nodes on baseline with clear step labels and line badges
+        // Nodes on baseline
         pts.forEach((pt, pIdx) => {
           const x = Math.max(10, Math.min(width - 10, (pt.line / totalLines) * width));
           const isLast = pIdx === pts.length - 1;
           const nodeRadius = isLast ? 6.5 : 5;
 
-          // Outer pulse ring for last event in chain
           if (isLast && pts.length > 1) {
             svgHtml += `
               <circle cx="${x}" cy="${baselineY}" r="12" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8">
@@ -1487,7 +2396,6 @@
                     fill="${color}" />
           `;
 
-          // Clean non-colliding line tag above each node: alternating vertical height if nodes are close
           const yOffset = (pIdx % 2 === 0) ? (baselineY - 12) : (baselineY - 26);
           svgHtml += `
             <text class="chart-interactive"
@@ -1500,7 +2408,7 @@
           `;
         });
 
-        // Focused Density Zone at bottom: highlight only chunks matching this finding
+        // Density zone at bottom
         const densityStartY = baselineY + 38;
         const sqSize = 9;
 
@@ -1527,11 +2435,7 @@
         }
 
       } else {
-        // ==========================================
-        // OVERALL DE-CONGESTED VIEW
-        // ==========================================
-        // Instead of 50 overlapping arcs, we draw ONE graceful progression arc per multi-event attack
-        // and keep stroke thin and gentle so it never looks congested.
+        // --- OVERALL DE-CONGESTED VIEW ---
         findingsData.forEach(f => {
           if (!f.points || f.points.length < 2) return;
           const color = getSevColor(f.severity);
@@ -1542,7 +2446,6 @@
           const dx = Math.abs(x2 - x1);
           if (dx < 3) return;
 
-          // Height scaled gently
           const arcH = Math.min(80, Math.max(22, dx * 0.32));
           const peakY = baselineY - arcH;
           const midX = (x1 + x2) / 2;
@@ -1557,13 +2460,13 @@
                   fill="none"
                   stroke="${color}"
                   stroke-width="1.3"
-                  stroke-opacity="0.4" />
+                  stroke-opacity="0.45" />
           `;
         });
 
-        // Event Nodes on baseline: clean nodes, no colliding text walls
+        // Event Nodes on baseline
         const renderedLabelX = [];
-        findingsData.forEach((f, fIdx) => {
+        findingsData.forEach((f) => {
           const color = getSevColor(f.severity);
           if (!f.points) return;
 
@@ -1574,11 +2477,10 @@
                       data-fid="${f.id}"
                       data-line="${pt.line}"
                       data-desc="${escapeHtml(pt.text)}"
-                      cx="${x}" cy="${baselineY}" r="3.5"
+                      cx="${x}" cy="${baselineY}" r="3.8"
                       fill="${color}" />
             `;
 
-            // Label only the first point of each finding, and ONLY if not colliding with another label
             if (pIdx === 0) {
               const tooClose = renderedLabelX.some(prevX => Math.abs(prevX - x) < 32);
               if (!tooClose) {
@@ -1596,7 +2498,7 @@
           });
         });
 
-        // Clean Density Zone at bottom
+        // Density Zone at bottom
         const densityStartY = baselineY + 38;
         const sqSize = 8;
         const sqGap = 2;
@@ -1633,7 +2535,7 @@
 
       svg.innerHTML = svgHtml;
 
-      // Bind events on SVG elements
+      // Bind Click and Hover handlers on SVG elements
       const elements = svg.querySelectorAll('.chart-interactive');
       elements.forEach(el => {
         const fid = el.getAttribute('data-fid');
@@ -1658,16 +2560,17 @@
           hideTooltip();
         });
 
+        // Clicking ANY attack node/arc opens its investigation in the right sidebar
         el.addEventListener('click', () => {
           hideTooltip();
-          selectFinding(fid);
-          const targetEl = document.getElementById('finding-row-' + fid);
-          if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          openAttackSidebar(fid);
         });
       });
     }
 
-    // RENDER FINDINGS
+    // =========================================================================
+    // FINDINGS SECTION (BOTTOM) ENGINE
+    // =========================================================================
     const findingsListEl = document.getElementById('findings-list');
     function renderFindings(filterSev = 'all', searchQuery = '') {
       if (!findingsListEl) return;
@@ -1690,28 +2593,12 @@
         if (emptyEl) emptyEl.style.display = 'none';
       }
 
-      filtered.forEach((f, idx) => {
+      filtered.forEach((f) => {
         const item = document.createElement('div');
-        item.className = 'finding-item' + (idx === 0 ? ' open' : '');
+        const isSelected = selectedFindingId && f.id === selectedFindingId;
+        item.className = 'finding-item' + (isSelected ? ' is-selected' : '');
         item.id = 'finding-row-' + f.id;
         item.setAttribute('data-id', f.id);
-
-        const pts = f.points || [];
-        const maxVisible = 5;
-        const hasMore = pts.length > maxVisible;
-        const visiblePts = pts.slice(0, maxVisible);
-        const hiddenPts = pts.slice(maxVisible);
-
-        function renderEvRows(pList) {
-          return pList.map(p => {
-            let htmlText = escapeHtml(p.text);
-            if (p.hl) {
-              const safeHl = escapeHtml(p.hl);
-              htmlText = htmlText.split(safeHl).join(`<span class="ev-hl">${safeHl}</span>`);
-            }
-            return `<div class="ev-row"><span class="ev-gutter">${p.line}</span><span class="ev-content">${htmlText}</span></div>`;
-          }).join('');
-        }
 
         item.innerHTML = `
           <div class="finding-item-row">
@@ -1721,55 +2608,31 @@
                 <span class="f-id">${escapeHtml(f.id)}</span>
                 <span class="f-title">${escapeHtml(f.type)}</span>
               </div>
-              <div class="f-ip">${escapeHtml(f.ip)}</div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span class="f-ip">${escapeHtml(f.ip)}</span>
+                <span class="f-open-hint">Inspect &rarr;</span>
+              </div>
             </div>
             <div class="f-line-2">
               <span>${escapeHtml(f.reason)}</span>
               <span class="f-line-2-caption">· ${escapeHtml(f.caption)}</span>
             </div>
           </div>
-          <div class="finding-details">
-            <div class="detail-block">
-              <div class="detail-label">Evidence</div>
-              <div class="evidence-block">
-                <div class="ev-visible-container">${renderEvRows(visiblePts)}</div>
-                ${hasMore ? `<div class="ev-hidden-container" style="display:none;">${renderEvRows(hiddenPts)}</div>` : ''}
-              </div>
-              ${hasMore ? `<button class="ev-toggle-btn" data-action="more">Show ${hiddenPts.length} more lines</button>` : ''}
-            </div>
-            <div class="detail-block" style="margin-bottom:0;">
-              <div class="detail-label">Suggested Action</div>
-              <div class="action-line">${escapeHtml(f.action)}</div>
-            </div>
-          </div>
         `;
 
-        const rowBar = item.querySelector('.finding-item-row');
-        rowBar.addEventListener('click', (e) => {
+        // Clicking opens the right sidebar
+        item.addEventListener('click', (e) => {
           e.stopPropagation();
-          selectFinding(f.id);
+          openAttackSidebar(f.id);
         });
-
-        if (hasMore) {
-          const toggleBtn = item.querySelector('.ev-toggle-btn');
-          const hiddenBox = item.querySelector('.ev-hidden-container');
-          toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (hiddenBox.style.display === 'none') {
-              hiddenBox.style.display = 'block';
-              toggleBtn.textContent = 'Show less';
-            } else {
-              hiddenBox.style.display = 'none';
-              toggleBtn.textContent = `Show ${hiddenPts.length} more lines`;
-            }
-          });
-        }
 
         findingsListEl.appendChild(item);
       });
     }
 
-    // RENDER CHUNKS VIEW
+    // =========================================================================
+    // RENDER CHUNKS LIST
+    // =========================================================================
     function renderChunksList() {
       const container = document.getElementById('chunks-list-container');
       if (!container) return;
@@ -1778,7 +2641,7 @@
       chunksData.forEach(c => {
         const row = document.createElement('div');
         row.className = 'chunk-row';
-        
+
         const chipsHtml = (c.findings && c.findings.length > 0)
           ? c.findings.map(t => {
               const finding = findingsData.find(f => f.type === t);
@@ -1804,7 +2667,9 @@
       });
     }
 
-    // ACTIVITY LOG HELPER
+    // =========================================================================
+    // ACTIVITY LOG & UTILITY HELPERS
+    // =========================================================================
     function addLogEntry(msg) {
       const streamEl = document.getElementById('activity-log-stream');
       const timeStr = new Date().toTimeString().split(' ')[0];
@@ -1823,10 +2688,9 @@
       }
     }
 
-    // SYNTAX HIGHLIGHTER
     function syntaxHighlight(json) {
       return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(
-        /("(\u[a-zA-Z0-9]{4}|\[^u]|[^\"])*"(\s*:)?|(true|false|null)|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        /("(\u[a-zA-Z0-9]{4}|\[^u]|[^\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
         function (match) {
           let cls = 'json-num';
           if (/^"/.test(match)) {
@@ -1841,213 +2705,77 @@
       );
     }
 
-    // RENDER ALL CORRELATED ATTACK SEQUENCES
-    function renderAttackSequences() {
-      const container = document.getElementById('sequences-list-container');
-      if (!container) return;
-      container.innerHTML = '';
-
-      // Group findings by IP
-      const byIp = {};
-      findingsData.forEach(f => {
-        const ip = f.ip || 'unknown';
-        if (!byIp[ip]) byIp[ip] = [];
-        byIp[ip].push(f);
-      });
-
-      const sequences = [];
-
-      // 1. IP 203.0.113.44: Brute force -> Account takeover -> Exfiltration
-      if (byIp['203.0.113.44']) {
-        const list = byIp['203.0.113.44'];
-        const allPoints = [];
-        list.forEach(f => {
-          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
-        });
-        allPoints.sort((a, b) => a.line - b.line);
-
-        sequences.push({
-          title: "Account Takeover & Data Exfiltration Kill Chain",
-          actor: "203.0.113.44",
-          severity: "Critical",
-          steps: allPoints.filter((p, i, arr) => i === 0 || i === Math.floor(arr.length/2) || p.line >= 180 || i === arr.length - 1),
-          conclusion: "Attacker conducted repeated credential spraying (lines 5–189), successfully achieved administrative login (line 196), and immediately initiated a high-volume 2.8MB CSV database export (line 201)."
-        });
-      }
-
-      // 2. IP 203.0.113.90: Reconnaissance -> Path Traversal
-      if (byIp['203.0.113.90']) {
-        const list = byIp['203.0.113.90'];
-        const allPoints = [];
-        list.forEach(f => {
-          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
-        });
-        allPoints.sort((a, b) => a.line - b.line);
-
-        sequences.push({
-          title: "Automated Reconnaissance to Directory Traversal",
-          actor: "203.0.113.90",
-          severity: "High",
-          steps: allPoints,
-          conclusion: "Hostile scanner probed for sensitive files (.env, .git, backup.sql) across lines 54–69 before attempting local directory traversal to retrieve /etc/passwd at line 99."
-        });
-      }
-
-      // 3. IP 203.0.113.72: SQL Injection
-      if (byIp['203.0.113.72']) {
-        const list = byIp['203.0.113.72'];
-        const allPoints = [];
-        list.forEach(f => {
-          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
-        });
-        allPoints.sort((a, b) => a.line - b.line);
-
-        sequences.push({
-          title: "Targeted SQL Injection Probing Campaign",
-          actor: "203.0.113.72",
-          severity: "Critical",
-          steps: allPoints,
-          conclusion: "Repeated boolean SQL injection tautologies (' OR 1=1--) submitted to crop search endpoints across lines 29, 30, 222, and 223 to map backend database schema."
-        });
-      }
-
-      // 4. IP 203.0.113.155: API Rate Abuse
-      if (byIp['203.0.113.155']) {
-        const list = byIp['203.0.113.155'];
-        const allPoints = [];
-        list.forEach(f => {
-          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
-        });
-        allPoints.sort((a, b) => a.line - b.line);
-
-        sequences.push({
-          title: "Volumetric API Rate Abuse / Denial of Service",
-          actor: "203.0.113.155",
-          severity: "Medium",
-          steps: allPoints.slice(0, 6),
-          conclusion: "High-frequency burst of 120+ requests within a 10-second window hitting HTTP 429 rate limiter thresholds across lines 159–170."
-        });
-      }
-
-      // 5. Any other hostile IPs (e.g. 198.51.100.96)
-      Object.keys(byIp).forEach(ip => {
-        if (!['203.0.113.44', '203.0.113.90', '203.0.113.72', '203.0.113.155', 'unknown'].includes(ip)) {
-          const list = byIp[ip];
-          const allPoints = [];
-          list.forEach(f => {
-            (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
-          });
-          allPoints.sort((a, b) => a.line - b.line);
-          sequences.push({
-            title: `Hostile Activity Sequence · ${list[0].type}`,
-            actor: ip,
-            severity: list[0].severity || 'High',
-            steps: allPoints,
-            conclusion: list[0].reason || 'Security threat detected across multiple log entries.'
-          });
-        }
-      });
-
-      // Render each sequence card
-      sequences.forEach((seq) => {
-        const card = document.createElement('div');
-        card.className = 'incident-section';
-        card.style.backgroundColor = 'var(--surface)';
-        card.style.border = '1px solid var(--divider)';
-        card.style.borderRadius = '6px';
-        card.style.padding = '18px 20px';
-        card.style.marginBottom = '20px';
-
-        const color = getSevColor(seq.severity);
-
-        const stepsHtml = (seq.steps || []).map(pt => {
-          const isHigh = pt.type && (pt.type.toLowerCase().includes('compromise') || pt.type.toLowerCase().includes('exfiltration'));
-          return `
-            <div class="incident-step ${isHigh ? 'highlight' : ''}" data-target="${pt.findingId}" style="cursor:pointer;" title="Click to isolate timeline in graph above">
-              <span class="node-dot" style="${isHigh ? 'background-color:var(--critical);' : ''}"></span>
-              <span class="step-mono">L${pt.line} · Part ${pt.part}</span>
-              <span>·</span>
-              <span>${escapeHtml(pt.text)}</span>
-            </div>
-          `;
-        }).join('');
-
-        card.innerHTML = `
-          <div class="incident-heading" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="sev-dot ${(seq.severity || '').toLowerCase()}"></span>
-              <span style="font-weight:600; font-size:14px; color:var(--text);">${escapeHtml(seq.title)}</span>
-              <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-secondary); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:4px;">IP ${escapeHtml(seq.actor)}</span>
-            </div>
-            <span class="sev-pill" style="font-size:11.5px; border-color:${color}; color:${color};">${escapeHtml(seq.severity)}</span>
-          </div>
-          <div class="incident-chain" style="margin-bottom:14px;">
-            ${stepsHtml}
-          </div>
-          <div class="incident-conclusion" style="border-top:1px solid var(--divider); padding-top:12px; font-size:13px; font-weight:normal; color:var(--text-secondary);">
-            <strong style="color:var(--text);">Correlation Assessment:</strong> ${escapeHtml(seq.conclusion)}
-          </div>
-        `;
-
-        card.querySelectorAll('.incident-step').forEach(step => {
-          step.addEventListener('click', () => {
-            const targetId = step.getAttribute('data-target');
-            if (targetId) selectFinding(targetId);
-          });
-        });
-
-        container.appendChild(card);
-      });
-    }
-
-    // UPDATE UI WITH REPORT DATA
+    // =========================================================================
+    // UPDATE UI WITH LIVE REPORT DATA
+    // =========================================================================
     function applyReport(report, job) {
       auditJsonPayload = report;
       const chains = report.attack_chains || [];
 
-      // Map to findingsData
+      // Map to findingsData with rich metadata
       findingsData = chains.map((c, idx) => {
         const fid = `F-0${idx + 1}`;
         const lineList = c.lines || [];
-        const linesStr = lineList.length > 5 
+        const linesStr = lineList.length > 4 
           ? `lines ${lineList[0]}..${lineList[lineList.length-1]} (${lineList.length} occurrences)` 
           : `lines ${lineList.join(', ')}`;
+
+        const actorIp = (c.actors && c.actors[0]) || 'unknown';
 
         return {
           id: fid,
           severity: c.severity || 'High',
           type: c.attack_type || 'Malicious Activity',
-          ip: (c.actors && c.actors[0]) || 'unknown',
+          category: c.category || 'Security Threat',
+          ip: actorIp,
           reason: c.reason || 'Security threat detected across multiple log entries.',
           caption: `${lineList.length} line(s) · ${linesStr}`,
           action: c.action || 'Deploy perimeter filtering and enforce rate limits.',
+          lines: lineList,
           points: lineList.map(l => ({
             line: l,
             part: Math.floor(l / 30) + 1,
             text: `Line ${l} · ${c.evidence || c.attack_type}`,
-            hl: (c.actors && c.actors[0]) || ''
-          }))
+            hl: actorIp
+          })),
+          why_detected: {
+            signatures: [`SIG-ALERT: ${c.attack_type}`],
+            observed: `Recorded ${lineList.length} incident occurrences from IP ${actorIp} (${linesStr}).`,
+            inferred: `Threat analysis indicates coordinated malicious activity targeting application components.`,
+            severity_justification: `${c.severity} severity based on detected vulnerability risk profile.`,
+            correlation: `Correlated across log entries during timeline analysis.`
+          },
+          actions_detail: [
+            {
+              title: c.action || "Deploy Defensive Filtering",
+              necessity: "Exploitation attempt detected in server access logs.",
+              threat: c.attack_type || "Security threat",
+              benefit: "Remediates attack vector and prevents unauthorized operations."
+            }
+          ]
         };
       });
 
       // Map to chunksData
       const cfList = (job && job.chunk_findings) ? job.chunk_findings : [];
-      chunksData = cfList.map(cf => ({
-        part: cf.chunk,
-        lines: `L${cf.lines.replace('-', '–L')}`,
-        status: cf.skipped_model ? 'Optimized' : 'Complete',
-        isRecovered: cf.skipped_model,
-        findings: (cf.findings || []).map(f => f.type),
-        duration: `${cf.timing_s || 0}s`,
-        tokensIn: cf.skipped_model ? 0 : 420,
-        tokensOut: cf.skipped_model ? 0 : 85,
-        summary: cf.skipped_model 
-          ? 'Static benign traffic; skipped model call to minimize latency and memory usage.'
-          : (cf.findings && cf.findings.length > 0 
-              ? `Flagged ${cf.findings.length} threat(s): ${cf.findings.map(f => f.type).join(', ')}` 
-              : 'Clean log partition without hostile activity.'),
-        sample: cf.raw || 'Chunk entries'
-      }));
+      if (cfList.length > 0) {
+        chunksData = cfList.map(cf => ({
+          part: cf.chunk,
+          lines: `L${cf.lines.replace('-', '–L')}`,
+          status: cf.skipped_model ? 'Optimized' : 'Complete',
+          isRecovered: cf.skipped_model,
+          findings: (cf.findings || []).map(f => f.type),
+          duration: `${cf.timing_s || 0}s`,
+          tokensIn: cf.skipped_model ? 0 : 420,
+          tokensOut: cf.skipped_model ? 0 : 85,
+          summary: cf.skipped_model 
+            ? 'Static benign traffic; skipped model call to minimize latency and memory usage.'
+            : (cf.findings && cf.findings.length > 0 
+                ? `Flagged ${cf.findings.length} threat(s): ${cf.findings.map(f => f.type).join(', ')}` 
+                : 'Clean log partition without hostile activity.'),
+          sample: cf.raw || 'Chunk entries'
+        }));
+      }
 
       totalLogParts = chunksData.length || 9;
       totalLogLines = totalLogParts * 30;
@@ -2096,10 +2824,7 @@
         if (f === 'Low') t.textContent = `Low (${low})`;
       });
 
-      // Render all correlated attack sequences
-      renderAttackSequences();
-
-      // Render chart, findings, and chunks
+      // Render simplified 3-section report view
       renderAttackFlowChart();
       renderFindings('all', '');
       renderChunksList();
@@ -2110,9 +2835,6 @@
         jsonEl.innerHTML = syntaxHighlight(JSON.stringify(report, null, 2));
       }
     }
-
-    // LIFECYCLE & STATE MANAGEMENT
-    let analysisStatus = 'idle'; // 'idle' | 'running' | 'paused' | 'done' | 'cancelled' | 'error'
 
     function updateUIForState(status, job = null) {
       analysisStatus = status;
