@@ -1,12 +1,40 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing & Cache
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Dynamic uploads, runtime checkpoints & logs
 backend/uploads/*
 !backend/uploads/.gitkeep
-*_checkpoint.json
 uploads/*
 !uploads/.gitkeep
-.env
+*_checkpoint.json
 *.log
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Internal developer schedule
 GIT_PUSH_SCHEDULE.md
