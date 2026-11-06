@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+uploads/
+.env
+*.log
+.pytest_cache/
+GIT_PUSH_SCHEDULE.md
