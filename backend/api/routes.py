@@ -4,12 +4,38 @@ from flask import Blueprint, request, jsonify
 
 import config
 from core.model import check_ollama, list_models, set_model
-from core.analyzer import analyze_job, load_checkpoints, get_system_telemetry
+from core.analyzer import (
+    analyze_job,
+    load_checkpoints,
+    save_checkpoint,
+    delete_checkpoint,
+    get_system_telemetry,
+)
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
 # Rehydrate existing jobs from disk to support resume after restart
 jobs: dict = load_checkpoints()
+
+
+@api.route("/active-session")
+def active_session():
+    """Return active or paused session if one exists, ensuring dead sessions don't resurrect."""
+    # Find unfinished job in memory
+    for jid, j in list(jobs.items()):
+        st = j.get("status")
+        if st in ("queued", "analyzing", "paused"):
+            return jsonify({
+                "has_active": True,
+                "job_id": jid,
+                "status": st,
+                "filename": j.get("filename"),
+                "current_chunk": j.get("current_chunk", 0),
+                "total_chunks": j.get("total_chunks", 0),
+                "progress": j.get("progress", 0)
+            })
+
+    return jsonify({"has_active": False})
 
 
 @api.route("/health")
@@ -44,6 +70,15 @@ def switch_model():
 
 @api.route("/analyze", methods=["POST"])
 def analyze():
+    # 1. Enforce single-active-analysis constraint
+    active = [j for j in jobs.values() if j.get("status") in ("queued", "analyzing")]
+    if active:
+        return jsonify({
+            "error": "An analysis is already running. Please pause, cancel, or wait for it to finish.",
+            "active_job_id": active[0]["job_id"],
+            "status": active[0]["status"]
+        }), 409
+
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -69,7 +104,9 @@ def analyze():
         "chunk_findings": [],
         "all_findings": [],
         "report": None,
-        "error": None
+        "error": None,
+        "cancel_requested": False,
+        "pause_requested": False
     }
 
     save_path = config.UPLOAD_DIR / f"{job_id}_{f.filename}"
@@ -82,21 +119,65 @@ def analyze():
     )
     thread.start()
 
-    return jsonify({"job_id": job_id, "line_count": line_count, "status": "queued"})
+    est_chunks = max(1, (line_count + config.CHUNK_LINES - 1) // config.CHUNK_LINES)
+    return jsonify({"job_id": job_id, "line_count": line_count, "total_chunks": est_chunks, "status": "queued"})
+
+
+@api.route("/pause/<job_id>", methods=["POST"])
+def pause_job(job_id):
+    """Pause an active analysis at the nearest chunk boundary."""
+    if job_id not in jobs:
+        return jsonify({"error": "Job not found"}), 404
+    job = jobs[job_id]
+
+    if job.get("status") not in ("queued", "analyzing"):
+        return jsonify({"error": f"Cannot pause job with status '{job.get('status')}'"}), 400
+
+    job["pause_requested"] = True
+    job["status"] = "paused"
+    save_checkpoint(job)
+    return jsonify({
+        "job_id": job_id,
+        "status": "paused",
+        "current_chunk": job.get("current_chunk", 0),
+        "total_chunks": job.get("total_chunks", 0),
+        "message": "Analysis paused."
+    })
 
 
 @api.route("/resume/<job_id>", methods=["POST"])
 def resume_job(job_id):
     """Resume an interrupted or paused job from its last checkpoint."""
     if job_id not in jobs:
-        return jsonify({"error": "Job not found"}), 404
+        # Try loading from disk
+        checkpoints = load_checkpoints()
+        if job_id in checkpoints:
+            jobs[job_id] = checkpoints[job_id]
+        else:
+            return jsonify({"error": "Job not found"}), 404
+
     job = jobs[job_id]
 
     if job.get("status") == "done":
         return jsonify({"message": "Job is already completed", "status": "done"}), 200
 
-    # Locate uploaded source file
-    saved_files = list(config.UPLOAD_DIR.glob(f"{job_id}_*"))
+    # Ensure no other job is currently active
+    active = [j for j in jobs.values() if j.get("job_id") != job_id and j.get("status") in ("queued", "analyzing")]
+    if active:
+        return jsonify({
+            "error": "Another analysis is currently running. Please cancel it before resuming.",
+            "active_job_id": active[0]["job_id"]
+        }), 409
+
+    job["cancel_requested"] = False
+    job["pause_requested"] = False
+    job["status"] = "analyzing"
+
+    # Locate uploaded source file (excluding checkpoint JSON)
+    saved_files = [
+        f for f in config.UPLOAD_DIR.glob(f"{job_id}_*")
+        if not f.name.endswith("_checkpoint.json")
+    ]
     if not saved_files:
         return jsonify({"error": "Original log file not found on disk"}), 404
 
@@ -110,8 +191,43 @@ def resume_job(job_id):
 
     return jsonify({
         "job_id": job_id,
-        "resumed_from_chunk": job.get("current_chunk", 0),
-        "status": "resumed"
+        "resumed_from_chunk": len(job.get("chunk_findings", [])),
+        "status": "analyzing",
+        "message": "Analysis resumed"
+    })
+
+
+@api.route("/cancel/<job_id>", methods=["POST"])
+def cancel_job(job_id):
+    """Cancel an active or paused job, stopping worker and releasing locks."""
+    if job_id not in jobs:
+        delete_checkpoint(job_id)
+        return jsonify({"job_id": job_id, "status": "cancelled", "message": "Job cancelled"}), 200
+
+    job = jobs[job_id]
+    job["cancel_requested"] = True
+    job["status"] = "cancelled"
+    delete_checkpoint(job_id)
+    return jsonify({
+        "job_id": job_id,
+        "status": "cancelled",
+        "message": "Analysis cancelled. File uploads unlocked."
+    })
+
+
+@api.route("/discard/<job_id>", methods=["POST"])
+def discard_job(job_id):
+    """Completely purge job state from memory and disk."""
+    if job_id in jobs:
+        job = jobs[job_id]
+        job["cancel_requested"] = True
+        job["status"] = "discarded"
+        del jobs[job_id]
+    delete_checkpoint(job_id)
+    return jsonify({
+        "job_id": job_id,
+        "status": "discarded",
+        "message": "Session discarded. State completely reset."
     })
 
 

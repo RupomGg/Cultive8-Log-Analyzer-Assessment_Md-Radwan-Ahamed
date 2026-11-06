@@ -14,6 +14,15 @@ class TestAnalyzerMerge(unittest.TestCase):
         self.assertEqual(findings[0]["type"], "sql_injection")
         self.assertEqual(findings[0]["lines"], [29])
 
+    def test_merge_findings_handles_string_and_mixed_lines(self):
+        findings = [
+            {"type": "sql_injection", "severity": "Medium", "ip": "1.1.1.1", "lines": "29", "chunk": 1},
+            {"type": "sql_injection", "severity": "High", "ip": "1.1.1.1", "lines": [30, "31"], "chunk": 2},
+        ]
+        merged = merge_findings(findings)
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["lines"], [29, 30, 31])
+
     def test_merge_findings_across_chunks(self):
         chunk1_findings = [
             {"type": "brute_force", "severity": "Medium", "ip": "203.0.113.44", "lines": [5, 13], "chunk": 1}

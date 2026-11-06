@@ -1,8 +1,12 @@
 __pycache__/
 *.pyc
 *.pyo
-uploads/
+.pytest_cache/
+backend/uploads/*
+!backend/uploads/.gitkeep
+*_checkpoint.json
+uploads/*
+!uploads/.gitkeep
 .env
 *.log
-.pytest_cache/
 GIT_PUSH_SCHEDULE.md

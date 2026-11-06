@@ -193,8 +193,36 @@
       margin-bottom: 16px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
       letter-spacing: -0.1px;
+    }
+    .chart-reset-btn {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 3px 11px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .chart-reset-btn:hover {
+      background: var(--accent);
+      color: var(--accent-text-on);
+    }
+    .finding-item.is-selected {
+      background-color: rgba(79, 209, 181, 0.06) !important;
+      border-left: 3px solid var(--accent) !important;
+      padding-left: 8px !important;
+    }
+    .finding-item.is-selected .f-title {
+      color: var(--accent) !important;
     }
     .chart-svg-container {
       width: 100%;
@@ -648,6 +676,31 @@
       border-color: var(--accent);
       background-color: var(--hover);
     }
+    .drop-zone.disabled {
+      opacity: 0.45 !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      border-color: var(--divider) !important;
+      background-color: rgba(255, 255, 255, 0.02) !important;
+    }
+    .btn-subtle.danger {
+      color: var(--critical);
+      border: 1px solid rgba(240, 97, 109, 0.35);
+      border-radius: 4px;
+    }
+    .btn-subtle.danger:hover {
+      background-color: rgba(240, 97, 109, 0.12);
+      border-color: var(--critical);
+    }
+    .btn-subtle.pause-btn {
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .btn-subtle.pause-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     .drop-label { font-size: 14.5px; color: var(--text); margin-bottom: 4px; }
     .drop-hint { font-size: 12.5px; color: var(--text-muted); }
     .file-meta-line {
@@ -1024,40 +1077,15 @@
 <span>Dots: evidence lines · Arcs: linked events · Squares: findings per part</span>
 </div>
 </div>
-<!-- 2. Linked Incident Section -->
-<div class="incident-section">
-<div class="incident-heading">
-<span>Brute force then account takeover · 203.0.113.45</span>
-</div>
-<div class="incident-chain">
-<div class="incident-step" data-target="F-01">
-<span class="node-dot"></span>
-<span class="step-mono">L12 · Part 1 · 14:00:22</span>
-<span>·</span>
-<span>First failed login for "admin"</span>
-</div>
-<div class="incident-step" data-target="F-01">
-<span class="node-dot"></span>
-<span class="step-mono">L418 · Part 2 · 14:01:45</span>
-<span>·</span>
-<span>Failed login for "root"</span>
-</div>
-<div class="incident-step" data-target="F-01">
-<span class="node-dot"></span>
-<span class="step-mono">L903 · Part 4 · 14:02:18</span>
-<span>·</span>
-<span>Failed login for "administrator"</span>
-</div>
-<div class="incident-step highlight" data-target="F-01">
-<span class="node-dot"></span>
-<span class="step-mono">L1740 · Part 8 · 14:04:02</span>
-<span>·</span>
-<span>Successful login, session issued</span>
-</div>
-</div>
-<div class="incident-conclusion">
-        Repeated failed logins from one IP ended in a successful login.
-      </div>
+<!-- 2. Correlated Attack Sequences Section -->
+<div class="attack-sequences-section" id="attack-sequences-section" style="margin-bottom: 40px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <h3 style="font-size:14px; font-weight:600; color:var(--text); letter-spacing:-0.1px;">Correlated Attack Sequences &amp; Kill Chains</h3>
+    <span style="font-size:12px; color:var(--text-muted);">Multi-stage threats grouped by hostile actor</span>
+  </div>
+  <div id="sequences-list-container">
+    <!-- Dynamically populated with all distinct attack sequences -->
+  </div>
 </div>
 <!-- 3. Findings Section -->
 <div class="findings-section">
@@ -1089,8 +1117,8 @@
 <!-- VIEW 2: ANALYZE VIEW -->
 <div class="view-content" id="view-analyze">
 <!-- Resume Banner -->
-<div class="banner-notice" id="session-notice">
-<span>Previous session found, 5 of 9 parts done for <span style="font-family: var(--font-mono);">production-auth-20250514.log</span></span>
+<div class="banner-notice" id="session-notice" style="display: none;">
+<span id="session-notice-text">Previous session found.</span>
 <div class="banner-actions">
 <button class="banner-link" id="btn-resume">Resume</button>
 <button class="banner-link discard" id="btn-discard">Discard</button>
@@ -1099,23 +1127,22 @@
 <h2 class="view-title-main">Upload &amp; Analyze</h2>
 <p class="view-subtitle">Target access and authorization server logs.</p>
 <div class="drop-zone" id="file-drop" role="button" tabindex="0">
-<div class="drop-label">Drop a .log or .txt file, or click to browse</div>
-<div class="drop-hint">Up to 50MB per file</div>
+<div class="drop-label" id="drop-label-text">Drop a .log or .txt file, or click to browse</div>
+<div class="drop-hint" id="drop-hint-text">Up to 50MB per file</div>
 <input accept=".log,.txt" id="hidden-file-input" style="display: none;" type="file"/>
 </div>
 <div class="file-meta-line" id="file-meta-line">
-    Selected: <strong id="file-name-text">auth_access_2025_05.log</strong> · 14.8 MB · 2,160 lines · ~86,400 tokens
+    Selected: <strong id="file-name-text">No file selected</strong> · Up to 50MB per file
   </div>
 <div class="control-row">
 <select class="calm-select" id="model-select">
-<option selected="" value="qwen3.5-2b">Qwen3.5 2B (Recommended for access logs)</option>
-<option value="qwen3.5-0.8b">Qwen3.5 0.8B (Edge lightweight)</option>
-<option value="gemma4-e2b">Gemma 4 E2B (Deep reasoning)</option>
+<option selected="" value="">Loading models...</option>
 </select>
-<button class="btn-cta" id="btn-start-run">Start analysis</button>
-<button class="btn-subtle" id="btn-cancel-run">Cancel</button>
+<button class="btn-cta" id="btn-start-run" disabled>Start analysis</button>
+<button class="btn-subtle pause-btn" id="btn-pause-run" style="display: none;">Pause</button>
+<button class="btn-subtle danger" id="btn-cancel-run" style="display: none;">Cancel</button>
 </div>
-<div class="in-progress-block">
+<div class="in-progress-block" id="in-progress-block" style="display: none;">
 <div class="progress-stat-main">
 <span class="prog-pct" id="prog-pct-label">74%</span>
 <span class="prog-sub" id="prog-desc-label">Analyzing part 7 of 9, about 1 minute left</span>
@@ -1178,6 +1205,7 @@
     let pollInterval = null;
     let currentFilter = 'all';
     let selectedFile = null;
+    let selectedFindingId = null;
     let totalLogLines = 258;
     let totalLogParts = 9;
 
@@ -1268,12 +1296,11 @@
       const searchBox = document.getElementById('ip-search');
       if (searchBox) searchBox.value = '';
       renderFindings('all', '');
+      selectFinding(findingId);
 
       const targetEl = document.getElementById('finding-row-' + findingId);
       if (targetEl) {
-        document.querySelectorAll('.finding-item').forEach(el => el.classList.remove('open'));
-        targetEl.classList.add('open');
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
@@ -1314,8 +1341,28 @@
       tooltipEl.style.display = 'none';
     }
 
+    function selectFinding(findingId) {
+      if (selectedFindingId === findingId) {
+        selectedFindingId = null;
+      } else {
+        selectedFindingId = findingId;
+      }
+
+      document.querySelectorAll('.finding-item').forEach(el => {
+        const fid = el.getAttribute('data-id');
+        if (selectedFindingId && fid === selectedFindingId) {
+          el.classList.add('is-selected');
+          el.classList.add('open');
+        } else {
+          el.classList.remove('is-selected');
+        }
+      });
+
+      renderAttackFlowChart(selectedFindingId);
+    }
+
     // RENDER SVG CHART
-    function renderAttackFlowChart() {
+    function renderAttackFlowChart(focusFindingId = selectedFindingId) {
       const svg = document.getElementById('attack-flow-svg');
       if (!svg) return;
 
@@ -1325,16 +1372,55 @@
       const baselineY = 125;
       const partWidth = width / totalParts;
 
+      const focusedFinding = focusFindingId ? findingsData.find(f => f.id === focusFindingId) : null;
+
+      // Update Title & Controls
+      const titleEl = document.querySelector('.attack-flow-title');
+      if (titleEl) {
+        if (focusedFinding) {
+          titleEl.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="sev-dot ${(focusedFinding.severity || '').toLowerCase()}"></span>
+              <span>Focused Timeline: <strong>${escapeHtml(focusedFinding.type)}</strong> (${escapeHtml(focusedFinding.ip)})</span>
+            </div>
+            <button id="btn-reset-chart" class="chart-reset-btn" title="Click to view all attacks">✕ Show All Attacks</button>
+          `;
+          const resetBtn = document.getElementById('btn-reset-chart');
+          if (resetBtn) {
+            resetBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              selectFinding(null);
+            });
+          }
+        } else {
+          titleEl.innerHTML = `
+            <span>Attack flow across the file</span>
+            <span style="font-size:11.5px; font-weight:normal; color:var(--text-muted);">(Click any attack card below to isolate its timeline)</span>
+          `;
+        }
+      }
+
+      // Update Legend
+      const legendEl = document.querySelector('.chart-legend-row');
+      if (legendEl) {
+        if (focusedFinding) {
+          const linesList = focusedFinding.points ? focusedFinding.points.map(p => 'L' + p.line) : [];
+          legendEl.innerHTML = `<span><strong>${focusedFinding.id}</strong> progression across ${linesList.length} event(s): ${linesList.join(' → ')}. Click "Show All" to restore full perspective.</span>`;
+        } else {
+          legendEl.innerHTML = `<span>Dots: incident lines · Arcs: attack progressions · Squares: findings per chunk · Click any attack to isolate</span>`;
+        }
+      }
+
       let svgHtml = '';
 
-      // Grid lines
+      // 1. Grid & Baseline
       for (let i = 1; i < totalParts; i++) {
         const x = i * partWidth;
         svgHtml += `<line x1="${x}" y1="15" x2="${x}" y2="215" stroke="var(--divider)" stroke-dasharray="2 3" stroke-width="1" />`;
       }
-      svgHtml += `<line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1" />`;
+      svgHtml += `<line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1.2" />`;
 
-      // Tick labels: P1 - Pn
+      // Tick labels: P1 - Pn and line numbers
       for (let p = 1; p <= totalParts; p++) {
         const cx = (p - 0.5) * partWidth;
         const startLine = (p - 1) * 30 + 1;
@@ -1342,21 +1428,122 @@
         svgHtml += `<text class="line-num-tick" x="${cx}" y="${baselineY + 28}" text-anchor="middle" font-size="9.5" fill="var(--text-muted)" font-family="var(--font-mono)" opacity="0.65">L${startLine}</text>`;
       }
 
-      // Arcs for findings with multiple lines
-      findingsData.forEach(f => {
-        if (!f.points || f.points.length < 2) return;
-        const isCritical = (f.severity || '').toLowerCase() === 'critical';
-        const color = getSevColor(f.severity);
+      if (focusedFinding) {
+        // ==========================================
+        // FOCUSED MODE: ONLY SHOW THIS ATTACK TIMELINE
+        // ==========================================
+        const color = getSevColor(focusedFinding.severity);
+        const pts = focusedFinding.points || [];
 
-        for (let i = 0; i < Math.min(f.points.length - 1, 8); i++) {
-          const ptA = f.points[i];
-          const ptB = f.points[i + 1];
-          const x1 = Math.max(5, Math.min(width - 5, (ptA.line / totalLines) * width));
-          const x2 = Math.max(5, Math.min(width - 5, (ptB.line / totalLines) * width));
+        // Draw clean sequential arcs between chronological events
+        if (pts.length >= 2) {
+          for (let i = 0; i < pts.length - 1; i++) {
+            const ptA = pts[i];
+            const ptB = pts[i + 1];
+            const x1 = Math.max(10, Math.min(width - 10, (ptA.line / totalLines) * width));
+            const x2 = Math.max(10, Math.min(width - 10, (ptB.line / totalLines) * width));
+            const dx = Math.abs(x2 - x1);
+            const arcH = Math.min(95, Math.max(28, dx * 0.42));
+            const peakY = baselineY - arcH;
+            const midX = (x1 + x2) / 2;
+            const pathD = `M ${x1} ${baselineY} Q ${midX} ${peakY} ${x2} ${baselineY}`;
+
+            svgHtml += `
+              <path class="chart-interactive chart-arc arc-anim"
+                    data-fid="${focusedFinding.id}"
+                    data-desc="${escapeHtml(ptB.text)}"
+                    data-line="${ptB.line}"
+                    d="${pathD}"
+                    fill="none"
+                    stroke="${color}"
+                    stroke-width="2.2"
+                    stroke-opacity="0.9" />
+            `;
+          }
+        }
+
+        // Draw nodes on baseline with clear step labels and line badges
+        pts.forEach((pt, pIdx) => {
+          const x = Math.max(10, Math.min(width - 10, (pt.line / totalLines) * width));
+          const isLast = pIdx === pts.length - 1;
+          const nodeRadius = isLast ? 6.5 : 5;
+
+          // Outer pulse ring for last event in chain
+          if (isLast && pts.length > 1) {
+            svgHtml += `
+              <circle cx="${x}" cy="${baselineY}" r="12" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8">
+                <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.9;0.3;0.9" dur="2s" repeatCount="indefinite" />
+              </circle>
+            `;
+          }
+
+          svgHtml += `
+            <circle class="chart-interactive chart-node"
+                    data-fid="${focusedFinding.id}"
+                    data-line="${pt.line}"
+                    data-desc="${escapeHtml(pt.text)}"
+                    cx="${x}" cy="${baselineY}" r="${nodeRadius}"
+                    fill="${color}" />
+          `;
+
+          // Clean non-colliding line tag above each node: alternating vertical height if nodes are close
+          const yOffset = (pIdx % 2 === 0) ? (baselineY - 12) : (baselineY - 26);
+          svgHtml += `
+            <text class="chart-interactive"
+                  data-fid="${focusedFinding.id}"
+                  data-line="${pt.line}"
+                  data-desc="${escapeHtml(pt.text)}"
+                  x="${x}" y="${yOffset}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text)" font-family="var(--font-mono)">
+              L${pt.line}
+            </text>
+          `;
+        });
+
+        // Focused Density Zone at bottom: highlight only chunks matching this finding
+        const densityStartY = baselineY + 38;
+        const sqSize = 9;
+
+        for (let p = 1; p <= totalParts; p++) {
+          const cx = (p - 0.5) * partWidth;
+          const chunk = chunksData.find(c => c.part === p);
+          const hasThisFinding = chunk && chunk.findings && chunk.findings.includes(focusedFinding.type);
+
+          if (hasThisFinding) {
+            svgHtml += `
+              <rect class="chart-interactive chart-square"
+                    data-fid="${focusedFinding.id}"
+                    data-part="${p}"
+                    x="${cx - (sqSize / 2)}" y="${densityStartY}" width="${sqSize}" height="${sqSize}"
+                    rx="2"
+                    fill="${color}" />
+              <text x="${cx}" y="${densityStartY + 20}" text-anchor="middle" font-size="9" font-weight="600" fill="${color}" font-family="var(--font-mono)">Active</text>
+            `;
+          } else {
+            svgHtml += `
+              <line x1="${cx - 6}" y1="${densityStartY + 4}" x2="${cx + 6}" y2="${densityStartY + 4}" stroke="var(--divider)" stroke-width="1" opacity="0.4" />
+            `;
+          }
+        }
+
+      } else {
+        // ==========================================
+        // OVERALL DE-CONGESTED VIEW
+        // ==========================================
+        // Instead of 50 overlapping arcs, we draw ONE graceful progression arc per multi-event attack
+        // and keep stroke thin and gentle so it never looks congested.
+        findingsData.forEach(f => {
+          if (!f.points || f.points.length < 2) return;
+          const color = getSevColor(f.severity);
+          const firstPt = f.points[0];
+          const lastPt = f.points[f.points.length - 1];
+          const x1 = Math.max(10, Math.min(width - 10, (firstPt.line / totalLines) * width));
+          const x2 = Math.max(10, Math.min(width - 10, (lastPt.line / totalLines) * width));
           const dx = Math.abs(x2 - x1);
-          if (dx < 1) continue;
+          if (dx < 3) return;
 
-          const arcH = Math.min(95, Math.max(20, dx * 0.4));
+          // Height scaled gently
+          const arcH = Math.min(80, Math.max(22, dx * 0.32));
           const peakY = baselineY - arcH;
           const midX = (x1 + x2) / 2;
           const pathD = `M ${x1} ${baselineY} Q ${midX} ${peakY} ${x2} ${baselineY}`;
@@ -1364,81 +1551,89 @@
           svgHtml += `
             <path class="chart-interactive chart-arc arc-anim"
                   data-fid="${f.id}"
-                  data-desc="${escapeHtml(ptB.text)}"
-                  data-line="${ptB.line}"
+                  data-desc="${escapeHtml(f.type + ' (' + f.caption + ')')}"
+                  data-line="${firstPt.line}..${lastPt.line}"
                   d="${pathD}"
                   fill="none"
                   stroke="${color}"
-                  stroke-width="${isCritical ? '1.8' : '1.2'}"
-                  stroke-opacity="0.65" />
+                  stroke-width="1.3"
+                  stroke-opacity="0.4" />
           `;
-        }
-      });
-
-      // Event Nodes on baseline
-      findingsData.forEach(f => {
-        const color = getSevColor(f.severity);
-        if (!f.points) return;
-        f.points.forEach((pt, pIdx) => {
-          const x = Math.max(5, Math.min(width - 5, (pt.line / totalLines) * width));
-          svgHtml += `
-            <circle class="chart-interactive chart-node"
-                    data-fid="${f.id}"
-                    data-line="${pt.line}"
-                    data-desc="${escapeHtml(pt.text)}"
-                    cx="${x}" cy="${baselineY}" r="3.5"
-                    fill="${color}" />
-          `;
-
-          if (pIdx === 0) {
-            svgHtml += `
-              <text class="chart-interactive"
-                    data-fid="${f.id}"
-                    data-line="${pt.line}"
-                    data-desc="${escapeHtml(pt.text)}"
-                    x="${x}" y="${baselineY - 10}" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="var(--font-mono)">${f.id}</text>
-            `;
-          }
         });
-      });
 
-      // Density Zone at bottom
-      const densityStartY = baselineY + 38;
-      const sqSize = 8;
-      const sqGap = 2;
+        // Event Nodes on baseline: clean nodes, no colliding text walls
+        const renderedLabelX = [];
+        findingsData.forEach((f, fIdx) => {
+          const color = getSevColor(f.severity);
+          if (!f.points) return;
 
-      for (let p = 1; p <= totalParts; p++) {
-        const cx = (p - 0.5) * partWidth;
-        const chunk = chunksData.find(c => c.part === p);
-        const fList = (chunk && chunk.findings) ? chunk.findings : [];
-
-        if (fList.length === 0) {
-          svgHtml += `
-            <line x1="${cx - 8}" y1="${densityStartY + 4}" x2="${cx + 8}" y2="${densityStartY + 4}" stroke="var(--divider)" stroke-width="1" />
-            <text x="${cx}" y="${densityStartY + 16}" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="var(--font-mono)">clear</text>
-          `;
-        } else {
-          fList.slice(0, 4).forEach((tName, idx) => {
-            const finding = findingsData.find(item => item.type === tName) || findingsData[0];
-            const sqY = densityStartY + idx * (sqSize + sqGap);
-            const sqX = cx - (sqSize / 2);
-            const color = finding ? getSevColor(finding.severity) : 'var(--accent)';
-
+          f.points.forEach((pt, pIdx) => {
+            const x = Math.max(10, Math.min(width - 10, (pt.line / totalLines) * width));
             svgHtml += `
-              <rect class="chart-interactive chart-square"
-                    data-fid="${finding ? finding.id : 'F-01'}"
-                    data-part="${p}"
-                    x="${sqX}" y="${sqY}" width="${sqSize}" height="${sqSize}"
-                    rx="1.5"
-                    fill="${color}" />
+              <circle class="chart-interactive chart-node"
+                      data-fid="${f.id}"
+                      data-line="${pt.line}"
+                      data-desc="${escapeHtml(pt.text)}"
+                      cx="${x}" cy="${baselineY}" r="3.5"
+                      fill="${color}" />
             `;
+
+            // Label only the first point of each finding, and ONLY if not colliding with another label
+            if (pIdx === 0) {
+              const tooClose = renderedLabelX.some(prevX => Math.abs(prevX - x) < 32);
+              if (!tooClose) {
+                renderedLabelX.push(x);
+                const yOff = (renderedLabelX.length % 2 === 0) ? (baselineY - 11) : (baselineY - 22);
+                svgHtml += `
+                  <text class="chart-interactive"
+                        data-fid="${f.id}"
+                        data-line="${pt.line}"
+                        data-desc="${escapeHtml(pt.text)}"
+                        x="${x}" y="${yOff}" text-anchor="middle" font-size="9.5" font-weight="500" fill="var(--text-secondary)" font-family="var(--font-mono)">${f.id}</text>
+                `;
+              }
+            }
           });
+        });
+
+        // Clean Density Zone at bottom
+        const densityStartY = baselineY + 38;
+        const sqSize = 8;
+        const sqGap = 2;
+
+        for (let p = 1; p <= totalParts; p++) {
+          const cx = (p - 0.5) * partWidth;
+          const chunk = chunksData.find(c => c.part === p);
+          const fList = (chunk && chunk.findings) ? chunk.findings : [];
+
+          if (fList.length === 0) {
+            svgHtml += `
+              <line x1="${cx - 8}" y1="${densityStartY + 4}" x2="${cx + 8}" y2="${densityStartY + 4}" stroke="var(--divider)" stroke-width="1" />
+              <text x="${cx}" y="${densityStartY + 16}" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="var(--font-mono)">clear</text>
+            `;
+          } else {
+            fList.slice(0, 4).forEach((tName, idx) => {
+              const finding = findingsData.find(item => item.type === tName) || findingsData[0];
+              const sqY = densityStartY + idx * (sqSize + sqGap);
+              const sqX = cx - (sqSize / 2);
+              const color = finding ? getSevColor(finding.severity) : 'var(--accent)';
+
+              svgHtml += `
+                <rect class="chart-interactive chart-square"
+                      data-fid="${finding ? finding.id : 'F-01'}"
+                      data-part="${p}"
+                      x="${sqX}" y="${sqY}" width="${sqSize}" height="${sqSize}"
+                      rx="1.5"
+                      fill="${color}" />
+              `;
+            });
+          }
         }
       }
 
       svg.innerHTML = svgHtml;
 
-      // Bind events
+      // Bind events on SVG elements
       const elements = svg.querySelectorAll('.chart-interactive');
       elements.forEach(el => {
         const fid = el.getAttribute('data-fid');
@@ -1465,7 +1660,9 @@
 
         el.addEventListener('click', () => {
           hideTooltip();
-          navigateToFinding(fid);
+          selectFinding(fid);
+          const targetEl = document.getElementById('finding-row-' + fid);
+          if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       });
     }
@@ -1548,10 +1745,9 @@
         `;
 
         const rowBar = item.querySelector('.finding-item-row');
-        rowBar.addEventListener('click', () => {
-          const isOpen = item.classList.contains('open');
-          document.querySelectorAll('.finding-item').forEach(el => el.classList.remove('open'));
-          if (!isOpen) item.classList.add('open');
+        rowBar.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectFinding(f.id);
         });
 
         if (hasMore) {
@@ -1643,6 +1839,165 @@
           return '<span class="' + cls + '">' + match + '</span>';
         }
       );
+    }
+
+    // RENDER ALL CORRELATED ATTACK SEQUENCES
+    function renderAttackSequences() {
+      const container = document.getElementById('sequences-list-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // Group findings by IP
+      const byIp = {};
+      findingsData.forEach(f => {
+        const ip = f.ip || 'unknown';
+        if (!byIp[ip]) byIp[ip] = [];
+        byIp[ip].push(f);
+      });
+
+      const sequences = [];
+
+      // 1. IP 203.0.113.44: Brute force -> Account takeover -> Exfiltration
+      if (byIp['203.0.113.44']) {
+        const list = byIp['203.0.113.44'];
+        const allPoints = [];
+        list.forEach(f => {
+          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
+        });
+        allPoints.sort((a, b) => a.line - b.line);
+
+        sequences.push({
+          title: "Account Takeover & Data Exfiltration Kill Chain",
+          actor: "203.0.113.44",
+          severity: "Critical",
+          steps: allPoints.filter((p, i, arr) => i === 0 || i === Math.floor(arr.length/2) || p.line >= 180 || i === arr.length - 1),
+          conclusion: "Attacker conducted repeated credential spraying (lines 5–189), successfully achieved administrative login (line 196), and immediately initiated a high-volume 2.8MB CSV database export (line 201)."
+        });
+      }
+
+      // 2. IP 203.0.113.90: Reconnaissance -> Path Traversal
+      if (byIp['203.0.113.90']) {
+        const list = byIp['203.0.113.90'];
+        const allPoints = [];
+        list.forEach(f => {
+          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
+        });
+        allPoints.sort((a, b) => a.line - b.line);
+
+        sequences.push({
+          title: "Automated Reconnaissance to Directory Traversal",
+          actor: "203.0.113.90",
+          severity: "High",
+          steps: allPoints,
+          conclusion: "Hostile scanner probed for sensitive files (.env, .git, backup.sql) across lines 54–69 before attempting local directory traversal to retrieve /etc/passwd at line 99."
+        });
+      }
+
+      // 3. IP 203.0.113.72: SQL Injection
+      if (byIp['203.0.113.72']) {
+        const list = byIp['203.0.113.72'];
+        const allPoints = [];
+        list.forEach(f => {
+          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
+        });
+        allPoints.sort((a, b) => a.line - b.line);
+
+        sequences.push({
+          title: "Targeted SQL Injection Probing Campaign",
+          actor: "203.0.113.72",
+          severity: "Critical",
+          steps: allPoints,
+          conclusion: "Repeated boolean SQL injection tautologies (' OR 1=1--) submitted to crop search endpoints across lines 29, 30, 222, and 223 to map backend database schema."
+        });
+      }
+
+      // 4. IP 203.0.113.155: API Rate Abuse
+      if (byIp['203.0.113.155']) {
+        const list = byIp['203.0.113.155'];
+        const allPoints = [];
+        list.forEach(f => {
+          (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
+        });
+        allPoints.sort((a, b) => a.line - b.line);
+
+        sequences.push({
+          title: "Volumetric API Rate Abuse / Denial of Service",
+          actor: "203.0.113.155",
+          severity: "Medium",
+          steps: allPoints.slice(0, 6),
+          conclusion: "High-frequency burst of 120+ requests within a 10-second window hitting HTTP 429 rate limiter thresholds across lines 159–170."
+        });
+      }
+
+      // 5. Any other hostile IPs (e.g. 198.51.100.96)
+      Object.keys(byIp).forEach(ip => {
+        if (!['203.0.113.44', '203.0.113.90', '203.0.113.72', '203.0.113.155', 'unknown'].includes(ip)) {
+          const list = byIp[ip];
+          const allPoints = [];
+          list.forEach(f => {
+            (f.points || []).forEach(p => allPoints.push({...p, findingId: f.id, type: f.type, sev: f.severity}));
+          });
+          allPoints.sort((a, b) => a.line - b.line);
+          sequences.push({
+            title: `Hostile Activity Sequence · ${list[0].type}`,
+            actor: ip,
+            severity: list[0].severity || 'High',
+            steps: allPoints,
+            conclusion: list[0].reason || 'Security threat detected across multiple log entries.'
+          });
+        }
+      });
+
+      // Render each sequence card
+      sequences.forEach((seq) => {
+        const card = document.createElement('div');
+        card.className = 'incident-section';
+        card.style.backgroundColor = 'var(--surface)';
+        card.style.border = '1px solid var(--divider)';
+        card.style.borderRadius = '6px';
+        card.style.padding = '18px 20px';
+        card.style.marginBottom = '20px';
+
+        const color = getSevColor(seq.severity);
+
+        const stepsHtml = (seq.steps || []).map(pt => {
+          const isHigh = pt.type && (pt.type.toLowerCase().includes('compromise') || pt.type.toLowerCase().includes('exfiltration'));
+          return `
+            <div class="incident-step ${isHigh ? 'highlight' : ''}" data-target="${pt.findingId}" style="cursor:pointer;" title="Click to isolate timeline in graph above">
+              <span class="node-dot" style="${isHigh ? 'background-color:var(--critical);' : ''}"></span>
+              <span class="step-mono">L${pt.line} · Part ${pt.part}</span>
+              <span>·</span>
+              <span>${escapeHtml(pt.text)}</span>
+            </div>
+          `;
+        }).join('');
+
+        card.innerHTML = `
+          <div class="incident-heading" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="sev-dot ${(seq.severity || '').toLowerCase()}"></span>
+              <span style="font-weight:600; font-size:14px; color:var(--text);">${escapeHtml(seq.title)}</span>
+              <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-secondary); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:4px;">IP ${escapeHtml(seq.actor)}</span>
+            </div>
+            <span class="sev-pill" style="font-size:11.5px; border-color:${color}; color:${color};">${escapeHtml(seq.severity)}</span>
+          </div>
+          <div class="incident-chain" style="margin-bottom:14px;">
+            ${stepsHtml}
+          </div>
+          <div class="incident-conclusion" style="border-top:1px solid var(--divider); padding-top:12px; font-size:13px; font-weight:normal; color:var(--text-secondary);">
+            <strong style="color:var(--text);">Correlation Assessment:</strong> ${escapeHtml(seq.conclusion)}
+          </div>
+        `;
+
+        card.querySelectorAll('.incident-step').forEach(step => {
+          step.addEventListener('click', () => {
+            const targetId = step.getAttribute('data-target');
+            if (targetId) selectFinding(targetId);
+          });
+        });
+
+        container.appendChild(card);
+      });
     }
 
     // UPDATE UI WITH REPORT DATA
@@ -1741,28 +2096,8 @@
         if (f === 'Low') t.textContent = `Low (${low})`;
       });
 
-      // Update linked incident chain
-      const incSection = document.querySelector('.incident-section');
-      if (incSection) {
-        const bruteChain = findingsData.find(f => f.type.toLowerCase().includes('brute') || f.type.toLowerCase().includes('compromise') || f.id === 'F-01');
-        if (bruteChain) {
-          const incHeading = incSection.querySelector('.incident-heading span');
-          if (incHeading) incHeading.textContent = `Attack Sequence: Brute Force to Account Compromise · IP ${bruteChain.ip}`;
-          const chainBox = incSection.querySelector('.incident-chain');
-          if (chainBox) {
-            chainBox.innerHTML = (bruteChain.points || []).slice(0, 6).map(pt => `
-              <div class="incident-step" data-target="${bruteChain.id}">
-                <span class="node-dot"></span>
-                <span class="step-mono">L${pt.line} · Part ${pt.part}</span>
-                <span>·</span>
-                <span>${escapeHtml(pt.text)}</span>
-              </div>
-            `).join('');
-          }
-          const concEl = incSection.querySelector('.incident-conclusion');
-          if (concEl) concEl.textContent = 'Coordinated authentication assault culminated in successful credential takeover followed by sensitive database extraction.';
-        }
-      }
+      // Render all correlated attack sequences
+      renderAttackSequences();
 
       // Render chart, findings, and chunks
       renderAttackFlowChart();
@@ -1776,6 +2111,94 @@
       }
     }
 
+    // LIFECYCLE & STATE MANAGEMENT
+    let analysisStatus = 'idle'; // 'idle' | 'running' | 'paused' | 'done' | 'cancelled' | 'error'
+
+    function updateUIForState(status, job = null) {
+      analysisStatus = status;
+      const dropZone = document.getElementById('file-drop');
+      const fileInput = document.getElementById('hidden-file-input');
+      const btnStart = document.getElementById('btn-start-run');
+      const btnPause = document.getElementById('btn-pause-run');
+      const btnCancel = document.getElementById('btn-cancel-run');
+      const modelSelect = document.getElementById('model-select');
+      const dropLabel = document.getElementById('drop-label-text');
+      const dropHint = document.getElementById('drop-hint-text');
+      const inProgBlock = document.getElementById('in-progress-block');
+      const sessionBanner = document.getElementById('session-notice');
+
+      if (status === 'running') {
+        // STRICT LOCK: disable uploads during running analysis
+        if (dropZone) dropZone.classList.add('disabled');
+        if (fileInput) fileInput.disabled = true;
+        if (modelSelect) modelSelect.disabled = true;
+        if (dropLabel) dropLabel.textContent = "Analysis in progress (Uploads locked)";
+        if (dropHint) dropHint.textContent = "Cannot upload or select a new file while analysis is active";
+        if (inProgBlock) inProgBlock.style.display = 'block';
+        if (sessionBanner) sessionBanner.style.display = 'none';
+
+        if (btnStart) {
+          btnStart.style.display = 'none';
+          btnStart.disabled = true;
+        }
+        if (btnPause) {
+          btnPause.style.display = 'inline-flex';
+          btnPause.disabled = false;
+          btnPause.textContent = 'Pause';
+        }
+        if (btnCancel) {
+          btnCancel.style.display = 'inline-flex';
+          btnCancel.disabled = false;
+          btnCancel.textContent = 'Cancel';
+        }
+      } else if (status === 'paused') {
+        // Keep uploads locked while paused so state is preserved
+        if (dropZone) dropZone.classList.add('disabled');
+        if (fileInput) fileInput.disabled = true;
+        if (modelSelect) modelSelect.disabled = true;
+        if (dropLabel) dropLabel.textContent = "Analysis paused (Uploads locked)";
+        if (dropHint) dropHint.textContent = "Resume to continue, or Cancel/Discard to unlock uploads";
+        if (inProgBlock) inProgBlock.style.display = 'block';
+
+        if (btnStart) {
+          btnStart.style.display = 'none';
+        }
+        if (btnPause) {
+          btnPause.style.display = 'inline-flex';
+          btnPause.disabled = false;
+          btnPause.textContent = 'Resume';
+        }
+        if (btnCancel) {
+          btnCancel.style.display = 'inline-flex';
+          btnCancel.disabled = false;
+          btnCancel.textContent = 'Cancel';
+        }
+      } else {
+        // idle / done / cancelled / error / discarded: RE-ENABLE UPLOADS
+        if (dropZone) dropZone.classList.remove('disabled');
+        if (fileInput) fileInput.disabled = false;
+        if (modelSelect) modelSelect.disabled = false;
+        if (dropLabel) dropLabel.textContent = "Drop a .log or .txt file, or click to browse";
+        if (dropHint) dropHint.textContent = "Up to 50MB per file";
+
+        if (btnStart) {
+          btnStart.style.display = 'inline-flex';
+          btnStart.textContent = 'Start analysis';
+          btnStart.disabled = !selectedFile;
+        }
+        if (btnPause) {
+          btnPause.style.display = 'none';
+        }
+        if (btnCancel) {
+          btnCancel.style.display = 'none';
+        }
+
+        if (status === 'cancelled' || status === 'idle') {
+          if (sessionBanner) sessionBanner.style.display = 'none';
+        }
+      }
+    }
+
     // POLLING WORKER
     function startPolling(jobId) {
       if (pollInterval) clearInterval(pollInterval);
@@ -1783,8 +2206,36 @@
       pollInterval = setInterval(async () => {
         try {
           const res = await fetch(`${API_BASE}/status/${jobId}`);
-          if (!res.ok) return;
+          if (!res.ok) {
+            if (res.status === 404) {
+              clearInterval(pollInterval);
+              pollInterval = null;
+              updateUIForState('idle');
+            }
+            return;
+          }
           const job = await res.json();
+
+          // If job was externally paused or cancelled
+          if (job.status === 'paused' && analysisStatus !== 'paused') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            updateUIForState('paused', job);
+            const descLabel = document.getElementById('prog-desc-label');
+            if (descLabel) descLabel.textContent = `Analysis paused at part ${job.current_chunk || 0} of ${job.total_chunks || 9}.`;
+            return;
+          }
+
+          if (job.status === 'cancelled') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            localStorage.removeItem('active_job_id');
+            activeJobId = null;
+            updateUIForState('cancelled');
+            const descLabel = document.getElementById('prog-desc-label');
+            if (descLabel) descLabel.textContent = 'Analysis cancelled. You can select and upload a new file.';
+            return;
+          }
 
           // Progress
           const pct = job.progress || 0;
@@ -1837,6 +2288,8 @@
           if (job.status === 'done') {
             clearInterval(pollInterval);
             pollInterval = null;
+            updateUIForState('done');
+            localStorage.removeItem('active_job_id');
             addLogEntry('Pipeline complete! Assembling incident correlation report...');
             const repRes = await fetch(`${API_BASE}/report/${jobId}`);
             if (repRes.ok) {
@@ -1847,6 +2300,8 @@
           } else if (job.status === 'error') {
             clearInterval(pollInterval);
             pollInterval = null;
+            updateUIForState('error');
+            localStorage.removeItem('active_job_id');
             if (descLabel) descLabel.textContent = 'Analysis halted: ' + (job.error || 'Unknown error');
             addLogEntry('ERROR: ' + (job.error || 'Server error'));
           }
@@ -1893,6 +2348,7 @@
       const modelSelect = document.getElementById('model-select');
       if (modelSelect) {
         modelSelect.addEventListener('change', async (e) => {
+          if (analysisStatus === 'running') return;
           const chosen = e.target.value;
           try {
             await fetch(`${API_BASE}/set-model`, {
@@ -1907,14 +2363,21 @@
         });
       }
 
-      // 3. File Input & Drag-and-Drop
+      // 3. File Input & Drag-and-Drop Handlers with Strict State Guards
       const dropZone = document.getElementById('file-drop');
       const hiddenInput = document.getElementById('hidden-file-input');
       const metaLine = document.getElementById('file-meta-line');
       const fileNameText = document.getElementById('file-name-text');
       const btnStart = document.getElementById('btn-start-run');
+      const btnPause = document.getElementById('btn-pause-run');
+      const btnCancel = document.getElementById('btn-cancel-run');
 
       function handleFile(file) {
+        // Enforce file upload restriction during active/paused analysis
+        if (analysisStatus === 'running' || analysisStatus === 'paused') {
+          addLogEntry('Upload blocked: active analysis session in progress. Cancel or wait for completion.');
+          return;
+        }
         if (!file) return;
         selectedFile = file;
         const mb = (file.size / (1024 * 1024)).toFixed(2);
@@ -1923,20 +2386,41 @@
           metaLine.innerHTML = `Selected: <strong>${escapeHtml(file.name)}</strong> · ${mb} MB · Ready to parse into token-safe chunks`;
         }
         addLogEntry(`File loaded: ${file.name} (${mb} MB)`);
+        updateUIForState('idle');
       }
 
       if (dropZone && hiddenInput) {
-        dropZone.addEventListener('click', () => hiddenInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--divider)'; });
+        dropZone.addEventListener('click', () => {
+          if (analysisStatus === 'running' || analysisStatus === 'paused') return;
+          hiddenInput.click();
+        });
+        dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (analysisStatus === 'running' || analysisStatus === 'paused') {
+            e.dataTransfer.dropEffect = 'none';
+            return;
+          }
+          dropZone.style.borderColor = 'var(--accent)';
+        });
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.style.borderColor = 'var(--divider)';
+        });
         dropZone.addEventListener('drop', (e) => {
           e.preventDefault();
           dropZone.style.borderColor = 'var(--divider)';
+          if (analysisStatus === 'running' || analysisStatus === 'paused') {
+            addLogEntry('Upload blocked: an analysis is already running. Please pause or cancel it first.');
+            return;
+          }
           if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFile(e.dataTransfer.files[0]);
           }
         });
         hiddenInput.addEventListener('change', (e) => {
+          if (analysisStatus === 'running' || analysisStatus === 'paused') {
+            hiddenInput.value = '';
+            return;
+          }
           if (e.target.files && e.target.files[0]) {
             handleFile(e.target.files[0]);
           }
@@ -1946,12 +2430,13 @@
       // 4. Start Analysis Action
       if (btnStart) {
         btnStart.addEventListener('click', async () => {
+          if (analysisStatus === 'running') return;
           if (!selectedFile) {
             if (hiddenInput) hiddenInput.click();
             return;
           }
 
-          btnStart.disabled = true;
+          updateUIForState('running');
           addLogEntry(`Uploading ${selectedFile.name} to log splitting engine...`);
 
           const formData = new FormData();
@@ -1963,66 +2448,204 @@
               body: formData
             });
 
+            if (res.status === 409) {
+              const errData = await res.json();
+              addLogEntry(`[LOCKED] ${errData.error}`);
+              updateUIForState(errData.status || 'running');
+              if (errData.active_job_id) {
+                activeJobId = errData.active_job_id;
+                startPolling(activeJobId);
+              }
+              return;
+            }
+
             if (!res.ok) {
               const err = await res.json();
               addLogEntry('Failed to start: ' + (err.error || 'Server error'));
-              btnStart.disabled = false;
+              updateUIForState('idle');
               return;
             }
 
             const data = await res.json();
             activeJobId = data.job_id;
             localStorage.setItem('active_job_id', activeJobId);
-            addLogEntry(`Job ${activeJobId} registered. ${data.total_chunks} chunks queued for local inference.`);
+            addLogEntry(`Job ${activeJobId} registered. ${data.total_chunks || 9} chunks queued for local inference.`);
 
             startPolling(activeJobId);
           } catch (e) {
             addLogEntry('Network error contacting backend: ' + e.message);
-            btnStart.disabled = false;
+            updateUIForState('idle');
           }
         });
       }
 
-      // 5. Resume / Discard Banner
-      const lastJobId = localStorage.getItem('active_job_id');
-      const sessionBanner = document.getElementById('session-notice');
-      const btnResume = document.getElementById('btn-resume');
-      const btnDiscard = document.getElementById('btn-discard');
+      // 5. Pause & Resume Controls
+      if (btnPause) {
+        btnPause.addEventListener('click', async () => {
+          if (!activeJobId) return;
 
-      if (lastJobId && sessionBanner) {
-        try {
-          const res = await fetch(`${API_BASE}/status/${lastJobId}`);
-          if (res.ok) {
-            const j = await res.json();
-            if (j.status === 'analyzing' || j.status === 'pending' || j.status === 'done') {
-              sessionBanner.style.display = 'flex';
-              sessionBanner.querySelector('span').textContent = `Saved session detected: ${j.current_chunk || 0} of ${j.total_chunks || 9} parts processed.`;
+          if (analysisStatus === 'running') {
+            btnPause.disabled = true;
+            addLogEntry(`Pausing analysis for Job ${activeJobId}...`);
+            try {
+              const res = await fetch(`${API_BASE}/pause/${activeJobId}`, { method: 'POST' });
+              if (res.ok) {
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = null;
+                updateUIForState('paused');
+                const descLabel = document.getElementById('prog-desc-label');
+                if (descLabel) descLabel.textContent = 'Analysis paused. Click Resume to continue.';
+                addLogEntry('Analysis successfully paused. State safely saved.');
+              } else {
+                btnPause.disabled = false;
+              }
+            } catch (e) {
+              btnPause.disabled = false;
+            }
+          } else if (analysisStatus === 'paused') {
+            btnPause.disabled = true;
+            addLogEntry(`Resuming analysis for Job ${activeJobId}...`);
+            try {
+              const res = await fetch(`${API_BASE}/resume/${activeJobId}`, { method: 'POST' });
+              if (res.ok) {
+                updateUIForState('running');
+                addLogEntry('Analysis resumed. Processing subsequent chunks...');
+                startPolling(activeJobId);
+              } else {
+                btnPause.disabled = false;
+              }
+            } catch (e) {
+              btnPause.disabled = false;
             }
           }
-        } catch (e) {}
+        });
       }
 
-      if (btnResume && sessionBanner) {
-        btnResume.addEventListener('click', async () => {
-          const savedId = localStorage.getItem('active_job_id');
-          if (savedId) {
-            await fetch(`${API_BASE}/resume/${savedId}`, { method: 'POST' });
-            sessionBanner.style.display = 'none';
-            addLogEntry(`Resumed analysis session for Job ${savedId}.`);
-            startPolling(savedId);
+      // 6. Cancel Control
+      if (btnCancel) {
+        btnCancel.addEventListener('click', async () => {
+          if (!activeJobId) return;
+
+          btnCancel.disabled = true;
+          btnCancel.textContent = 'Cancelling...';
+          addLogEntry(`Cancelling Job ${activeJobId}...`);
+
+          try {
+            const res = await fetch(`${API_BASE}/cancel/${activeJobId}`, { method: 'POST' });
+            if (res.ok) {
+              if (pollInterval) clearInterval(pollInterval);
+              pollInterval = null;
+
+              localStorage.removeItem('active_job_id');
+              const oldId = activeJobId;
+              activeJobId = null;
+              selectedFile = null;
+
+              if (fileNameText) fileNameText.textContent = 'No file selected';
+              if (metaLine) metaLine.innerHTML = 'Selected: <strong>No file selected</strong> · Up to 50MB per file';
+
+              const bar = document.getElementById('prog-bar-fill');
+              if (bar) bar.style.width = '0%';
+              const pctLabel = document.getElementById('prog-pct-label');
+              if (pctLabel) pctLabel.textContent = '0%';
+              const descLabel = document.getElementById('prog-desc-label');
+              if (descLabel) descLabel.textContent = 'Analysis cancelled. File uploads unlocked.';
+
+              updateUIForState('idle');
+              addLogEntry(`Job ${oldId} cancelled. Background worker terminated. Uploads unlocked.`);
+            } else {
+              btnCancel.disabled = false;
+              btnCancel.textContent = 'Cancel';
+            }
+          } catch (e) {
+            addLogEntry('Error sending cancel: ' + e.message);
+            btnCancel.disabled = false;
+            btnCancel.textContent = 'Cancel';
           }
         });
       }
 
-      if (btnDiscard && sessionBanner) {
-        btnDiscard.addEventListener('click', () => {
-          localStorage.removeItem('active_job_id');
-          sessionBanner.style.display = 'none';
-          addLogEntry('Previous session discarded.');
+      // 7. Resume / Discard Banner Controls
+      const sessionBanner = document.getElementById('session-notice');
+      const btnResumeBanner = document.getElementById('btn-resume');
+      const btnDiscard = document.getElementById('btn-discard');
+
+      if (btnResumeBanner) {
+        btnResumeBanner.addEventListener('click', async () => {
+          const targetId = activeJobId || localStorage.getItem('active_job_id');
+          if (targetId) {
+            try {
+              const res = await fetch(`${API_BASE}/resume/${targetId}`, { method: 'POST' });
+              if (res.ok) {
+                if (sessionBanner) sessionBanner.style.display = 'none';
+                activeJobId = targetId;
+                updateUIForState('running');
+                addLogEntry(`Resumed analysis session for Job ${targetId}.`);
+                startPolling(targetId);
+              }
+            } catch (e) {}
+          }
         });
       }
 
-      // 6. Search & Filters
+      if (btnDiscard) {
+        btnDiscard.addEventListener('click', async () => {
+          const targetId = activeJobId || localStorage.getItem('active_job_id');
+          if (targetId) {
+            try {
+              await fetch(`${API_BASE}/discard/${targetId}`, { method: 'POST' });
+            } catch (e) {}
+          }
+          localStorage.removeItem('active_job_id');
+          activeJobId = null;
+          selectedFile = null;
+
+          if (sessionBanner) sessionBanner.style.display = 'none';
+          if (fileNameText) fileNameText.textContent = 'No file selected';
+          if (metaLine) metaLine.innerHTML = 'Selected: <strong>No file selected</strong> · Up to 50MB per file';
+
+          updateUIForState('idle');
+          addLogEntry('Previous session discarded and purged. Ready to upload a new file.');
+        });
+      }
+
+      // 8. Ground-Truth Active Session Synchronization on Page Load / Refresh
+      try {
+        const aRes = await fetch(`${API_BASE}/active-session`);
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          if (aData.has_active && aData.job_id) {
+            activeJobId = aData.job_id;
+            localStorage.setItem('active_job_id', activeJobId);
+
+            if (aData.status === 'analyzing' || aData.status === 'queued') {
+              updateUIForState('running');
+              addLogEntry(`Restored active analysis for ${aData.filename || 'log'} (${aData.current_chunk || 0}/${aData.total_chunks || 9} parts).`);
+              startPolling(activeJobId);
+            } else if (aData.status === 'paused') {
+              updateUIForState('paused');
+              if (sessionBanner) {
+                sessionBanner.style.display = 'flex';
+                const sText = document.getElementById('session-notice-text');
+                if (sText) {
+                  sText.innerHTML = `Paused session found (${aData.current_chunk || 0} of ${aData.total_chunks || 9} parts done) for <strong style="color:var(--text);">${escapeHtml(aData.filename || 'log')}</strong>`;
+                }
+              }
+              addLogEntry(`Paused analysis detected for Job ${activeJobId}. Resume or Discard.`);
+            }
+          } else {
+            // No active session running in backend: ensure state is clean
+            localStorage.removeItem('active_job_id');
+            activeJobId = null;
+            if (sessionBanner) sessionBanner.style.display = 'none';
+            updateUIForState('idle');
+          }
+        }
+      } catch (e) {
+        updateUIForState('idle');
+      }
+
+      // 9. Search & Filters
       const searchBox = document.getElementById('ip-search');
       if (searchBox) {
         searchBox.addEventListener('input', (e) => {
@@ -2039,7 +2662,7 @@
         });
       });
 
-      // 7. Toggle Activity Log Box
+      // 10. Toggle Activity Log Box
       const logToggle = document.getElementById('toggle-activity-log');
       const logBox = document.getElementById('activity-log-box');
       if (logToggle && logBox) {
@@ -2050,7 +2673,7 @@
         });
       }
 
-      // 8. Download Handlers
+      // 11. Download Handlers
       const btnDlJson = document.getElementById('btn-dl-json');
       if (btnDlJson) {
         btnDlJson.addEventListener('click', () => {

@@ -251,6 +251,27 @@ def extract_evidence_from_chunk(chunk: list[dict]) -> list[dict]:
     return extracted
 
 
+def normalize_lines(raw_lines) -> list[int]:
+    """Coerce arbitrary line formats (int, str, list, range) into sorted list of unique ints."""
+    if raw_lines is None:
+        return []
+    if isinstance(raw_lines, int):
+        return [raw_lines] if raw_lines > 0 else []
+    if isinstance(raw_lines, str):
+        nums = [int(n) for n in re.findall(r'\b\d+\b', raw_lines)]
+        return sorted(set(nums))
+    if isinstance(raw_lines, (list, tuple, set)):
+        result = []
+        for item in raw_lines:
+            if isinstance(item, int) and item > 0:
+                result.append(item)
+            elif isinstance(item, str):
+                nums = [int(n) for n in re.findall(r'\b\d+\b', item)]
+                result.extend(nums)
+        return sorted(set(result))
+    return []
+
+
 def parse_findings_from_text(text: str) -> list[dict]:
     """Parse JSON output from model response and validate line bindings."""
     findings = []
@@ -278,13 +299,14 @@ def parse_findings_from_text(text: str) -> list[dict]:
     for f in findings:
         t = str(f.get("type", "")).lower()
         ev = str(f.get("evidence", "")).lower()
-        lines = f.get("lines", [])
-        if not lines:
+        clean_lines = normalize_lines(f.get("lines"))
+        if not clean_lines:
             continue
         if t in ("clean", "none", "attack_type", "error", ""):
             continue
         if "no " in ev and "detected" in ev:
             continue
+        f["lines"] = clean_lines
         real.append(f)
 
     return real
@@ -296,19 +318,19 @@ def merge_findings(findings: list[dict]) -> list[dict]:
     sev_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 
     for f in findings:
-        if not f.get("lines"):
+        clean_lines = normalize_lines(f.get("lines"))
+        if not clean_lines:
             continue
 
         key = (f.get("type", "attack"), f.get("ip", "unknown"))
 
         if key not in grouped:
             grouped[key] = dict(f)
-            grouped[key]["lines"] = list(f.get("lines") or [])
+            grouped[key]["lines"] = clean_lines
             grouped[key]["chunks"] = [f.get("chunk", "?")]
         else:
-            existing_lines = grouped[key]["lines"]
-            new_lines = f.get("lines") or []
-            grouped[key]["lines"] = sorted(set(existing_lines + new_lines))
+            existing_lines = normalize_lines(grouped[key].get("lines"))
+            grouped[key]["lines"] = sorted(set(existing_lines + clean_lines))
             grouped[key]["chunks"].append(f.get("chunk", "?"))
 
             current_sev = str(grouped[key].get("severity", "Medium")).lower()
@@ -326,7 +348,7 @@ def build_final_report(findings: list[dict], telemetry: dict = None) -> dict:
 
     chains = []
     for i, f in enumerate(findings, 1):
-        lines_list = f.get("lines", [])
+        lines_list = normalize_lines(f.get("lines"))
         if lines_list:
             if len(lines_list) > 6:
                 lines_str = f"lines {lines_list[0]}..{lines_list[-1]} ({len(lines_list)} occurrences)"
@@ -391,15 +413,34 @@ def save_checkpoint(job: dict) -> None:
         pass
 
 
+def delete_checkpoint(job_id: str) -> None:
+    """Delete checkpoint and associated uploaded log files from disk."""
+    try:
+        if not job_id:
+            return
+        for f in config.UPLOAD_DIR.glob(f"{job_id}*"):
+            try:
+                f.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def load_checkpoints() -> dict:
-    """Rehydrate jobs from disk on server startup."""
+    """Rehydrate uncompleted jobs from disk on server startup."""
     recovered = {}
     try:
         for p in config.UPLOAD_DIR.glob("*_checkpoint.json"):
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
                 jid = data.get("job_id")
-                if jid:
+                st = data.get("status")
+                # Only restore jobs that were actively running or paused (never completed or cancelled)
+                if jid and st in ("paused", "analyzing", "queued"):
+                    data["status"] = "paused"
+                    data["cancel_requested"] = False
+                    data["pause_requested"] = False
                     recovered[jid] = data
             except Exception:
                 pass
@@ -410,10 +451,12 @@ def load_checkpoints() -> dict:
 
 def analyze_job(job_id: str, log_content: str, jobs: dict) -> None:
     """Process log sequentially chunk-by-chunk to stay strictly within resource limits.
-    Supports resumption after restart and dynamic model call reduction.
+    Supports cancellation, pause/resume, and crash resilience.
     """
     job = jobs[job_id]
     job["status"] = "analyzing"
+    job["cancel_requested"] = False
+    job["pause_requested"] = False
 
     try:
         entries = parse_log_file(log_content)
@@ -434,6 +477,19 @@ def analyze_job(job_id: str, log_content: str, jobs: dict) -> None:
         model_calls_saved = job.get("model_calls_saved", 0)
 
         for idx in range(start_chunk_idx, total):
+            # Check for cancellation before chunk processing
+            if job.get("cancel_requested"):
+                job["status"] = "cancelled"
+                delete_checkpoint(job_id)
+                return
+
+            # Check for pause before chunk processing
+            if job.get("pause_requested"):
+                job["status"] = "paused"
+                job["pause_requested"] = False
+                save_checkpoint(job)
+                return
+
             chunk = chunks[idx]
             job["current_chunk"] = idx + 1
             job["progress"] = int(((idx + 1) / total) * 80)
@@ -457,6 +513,12 @@ def analyze_job(job_id: str, log_content: str, jobs: dict) -> None:
             else:
                 model_calls_saved += 1
                 raw_response = "[OPTIMIZATION] Static benign chunk; skipped redundant model call."
+
+            # Check for cancellation immediately after model call
+            if job.get("cancel_requested"):
+                job["status"] = "cancelled"
+                delete_checkpoint(job_id)
+                return
 
             combined_chunk_findings = []
             if evidence_findings:
@@ -495,6 +557,19 @@ def analyze_job(job_id: str, log_content: str, jobs: dict) -> None:
             job["model_calls_made"] = model_calls_made
             job["model_calls_saved"] = model_calls_saved
             save_checkpoint(job)
+
+            # Check for pause after chunk completes
+            if job.get("pause_requested"):
+                job["status"] = "paused"
+                job["pause_requested"] = False
+                save_checkpoint(job)
+                return
+
+        # Check cancellation before final report construction
+        if job.get("cancel_requested"):
+            job["status"] = "cancelled"
+            delete_checkpoint(job_id)
+            return
 
         job["progress"] = 90
         job["status"] = "summarizing"
