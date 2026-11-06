@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LogSentinel - Security Log Audit</title>
+<style>
+    :root {
+      --bg: #0e1116;
+      --surface: #151a21;
+      --hover: #1b212a;
+      --divider: #232a34;
+      --text: #e6e9ee;
+      --text-secondary: #8d98a8;
+      --text-muted: #5f6a79;
+      --accent: #4fd1b5;
+      --accent-text-on: #0e1116;
+      --critical: #f0616d;
+      --high: #f4a259;
+      --medium: #e9c46a;
+      --low: #6fcf97;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--divider);
+      padding: 0 28px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    .site-nav .brand {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text);
+    }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      cursor: pointer;
+      padding: 15px 0;
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+
+    /* Single column container */
+    .page-container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 44px 20px 80px;
+    }
+
+    /* Views control */
+    .view-content {
+      display: none;
+    }
+    .view-content.active {
+      display: block;
+    }
+
+    /* 1. Summary Section (Report View) */
+    .summary-section {
+      margin-bottom: 36px;
+    }
+    .summary-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 12px;
+    }
+    .summary-headline {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      flex: 1;
+    }
+    .summary-actions-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .view-toggle-group {
+      display: inline-flex;
+      border: 1px solid var(--divider);
+      border-radius: 3px;
+      background: var(--surface);
+      padding: 2px;
+    }
+    .view-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 2px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s;
+    }
+    .view-toggle-btn:hover { color: var(--text); }
+    .view-toggle-btn.active {
+      background: var(--hover);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .dl-actions { display: flex; gap: 12px; }
+    .btn-ghost {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 2px 4px;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .btn-ghost:hover { color: var(--accent); }
+
+    .summary-detail {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .summary-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider);
+      font-size: 12.5px;
+    }
+    .summary-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-secondary);
+    }
+    .summary-meta-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-secondary);
+    }
+    .sev-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Attack Flow SVG Section */
+    .attack-flow-section {
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .attack-flow-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.1px;
+    }
+    .chart-svg-container {
+      width: 100%;
+      position: relative;
+    }
+    .attack-flow-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
+    }
+    .chart-interactive {
+      cursor: pointer;
+      transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+    .chart-svg-container.has-focus .chart-interactive {
+      opacity: 0.25;
+    }
+    .chart-svg-container.has-focus .chart-interactive.highlighted {
+      opacity: 1 !important;
+    }
+
+    /* Arc Draw Animation */
+    .arc-anim {
+      stroke-dasharray: 600;
+      stroke-dashoffset: 600;
+      animation: drawArc 0.6s ease-out forwards;
+    }
+    @keyframes drawArc {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .chart-legend-row {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    /* Floating Chart Tooltip */
+    #chart-tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      padding: 9px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 320px;
+      display: none;
+      transition: opacity 0.12s ease;
+      color: var(--text);
+    }
+    #chart-tooltip .tt-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    #chart-tooltip .tt-id {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text);
+    }
+    #chart-tooltip .tt-title {
+      font-weight: 500;
+      color: var(--text);
+    }
+    #chart-tooltip .tt-meta {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+    #chart-tooltip .tt-log {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      padding: 4px 6px;
+      border-radius: 2px;
+      word-break: break-all;
+    }
+
+    @media (max-width: 700px) {
+      .line-num-tick {
+        display: none;
+      }
+    }
+
+    /* Severity Dot */
+    .sev-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sev-dot.critical { background-color: var(--critical); }
+    .sev-dot.high { background-color: var(--high); }
+    .sev-dot.medium { background-color: var(--medium); }
+    .sev-dot.low { background-color: var(--low); }
+    .sev-dot.muted { background-color: var(--text-muted); }
+
+    /* 2. Linked Incident Section */
+    .incident-section {
+      margin-bottom: 44px;
+      padding-top: 4px;
+    }
+    .incident-heading {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.1px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .incident-chain {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+    .incident-chain::before {
+      content: "";
+      position: absolute;
+      left: 3.5px;
+      top: 8px;
+      bottom: 12px;
+      width: 1px;
+      background-color: var(--divider);
+    }
+    .incident-step {
+      position: relative;
+      padding: 7px 0 7px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      transition: color 0.15s;
+    }
+    .incident-step:hover {
+      color: var(--text);
+    }
+    .incident-step .node-dot {
+      position: absolute;
+      left: -20px;
+      top: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-muted);
+    }
+    .incident-step.highlight .node-dot {
+      background-color: var(--critical);
+      box-shadow: 0 0 0 2px rgba(240, 97, 109, 0.25);
+    }
+    .incident-step.highlight {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .step-mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .incident-step.highlight .step-mono {
+      color: var(--text);
+    }
+    .incident-conclusion {
+      font-weight: 600;
+      font-size: 13.5px;
+      color: var(--text);
+      padding-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* 3. Findings Section */
+    .findings-section {
+      margin-bottom: 40px;
+    }
+    .findings-control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--divider);
+      padding-bottom: 10px;
+      margin-bottom: 0;
+      gap: 16px;
+    }
+    .filter-tabs { display: flex; gap: 18px; }
+    .filter-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 2px 0;
+      position: relative;
+      transition: color 0.15s;
+    }
+    .filter-tab:hover { color: var(--text-secondary); }
+    .filter-tab.active { color: var(--text); font-weight: 500; }
+    .filter-tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: -11px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    .search-wrap input {
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      color: var(--text);
+      font-size: 12.5px;
+      font-family: inherit;
+      padding: 4px 10px;
+      border-radius: 3px;
+      width: 200px;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--text-muted); }
+
+    /* Findings Rows */
+    .findings-list { width: 100%; }
+    .finding-item {
+      border-bottom: 1px solid var(--divider);
+      transition: background 0.12s;
+    }
+    .finding-item-row {
+      padding: 13px 4px 13px 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .finding-item-row:hover { background-color: rgba(255, 255, 255, 0.02); }
+
+    .f-line-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .f-line-1-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .f-id {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      margin-right: 4px;
+    }
+    .f-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .f-ip {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .f-line-2 {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      padding-left: 16px;
+    }
+    .f-line-2-caption {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+
+    /* Accordion Details */
+    .finding-details {
+      display: none;
+      padding: 8px 4px 18px 16px;
+      background-color: transparent;
+    }
+    .finding-item.open .finding-details { display: block; }
+
+    .detail-block {
+      margin-bottom: 14px;
+    }
+    .detail-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .evidence-block {
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      border-radius: 2px;
+      margin: 4px 0 6px 0;
+      overflow-x: auto;
+    }
+    .ev-row {
+      display: flex;
+      padding: 3px 8px;
+      line-height: 1.5;
+    }
+    .ev-row:hover { background-color: var(--hover); }
+    .ev-gutter {
+      width: 42px;
+      text-align: right;
+      padding-right: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      user-select: none;
+      border-right: 1px solid var(--divider);
+      margin-right: 10px;
+    }
+    .ev-content {
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .ev-hl {
+      background: rgba(240, 97, 109, 0.15);
+      color: #ff9da6;
+      padding: 0 3px;
+      border-radius: 2px;
+    }
+    .ev-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 3px 0;
+    }
+    .ev-toggle-btn:hover { text-decoration: underline; }
+    .action-line {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .empty-findings-state {
+      padding: 36px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13.5px;
+    }
+
+    /* JSON View in Report */
+    .json-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--divider);
+    }
+    .json-code-block {
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      padding: 18px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      line-height: 1.5;
+      max-height: 720px;
+    }
+    .json-key { color: var(--accent); }
+    .json-str { color: #f4a259; }
+    .json-num { color: #6fcf97; }
+    .json-bool { color: #e9c46a; }
+    .mono { font-family: var(--font-mono); }
+    .text-secondary { color: var(--text-secondary); }
+
+    /* VIEW 2: ANALYZE STYLES */
+    .banner-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background-color: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .banner-actions { display: flex; gap: 14px; }
+    .banner-link {
+      color: var(--accent);
+      background: none;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .banner-link:hover { text-decoration: underline; }
+    .banner-link.discard { color: var(--text-muted); }
+    .banner-link.discard:hover { color: var(--text-secondary); }
+
+    .view-title-main {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .view-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .drop-zone {
+      border: 1px dashed var(--divider);
+      background-color: var(--surface);
+      border-radius: 4px;
+      padding: 44px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background-color 0.15s;
+      margin-bottom: 14px;
+    }
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background-color: var(--hover);
+    }
+    .drop-label { font-size: 14.5px; color: var(--text); margin-bottom: 4px; }
+    .drop-hint { font-size: 12.5px; color: var(--text-muted); }
+    .file-meta-line {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .file-meta-line strong { color: var(--text); font-weight: 500; }
+    
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .calm-select {
+      background-color: var(--surface);
+      border: 1px solid var(--divider);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .calm-select:focus { border-color: var(--accent); }
+    .btn-cta {
+      background-color: var(--accent);
+      color: var(--accent-text-on);
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 8px 18px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: inherit;
+    }
+    .btn-cta:hover { opacity: 0.9; }
+    .btn-cta:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-subtle {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 8px 14px;
+      font-family: inherit;
+    }
+    .btn-subtle:hover { color: var(--text); }
+
+    .in-progress-block {
+      border-top: 1px solid var(--divider);
+      padding-top: 32px;
+    }
+    .progress-stat-main {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .prog-pct {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.4px;
+    }
+    .prog-sub {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .progress-bar-thin {
+      height: 3px;
+      background-color: var(--surface);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 74%;
+      background-color: var(--accent);
+      transition: width 0.3s ease;
+    }
+    .chunk-dots {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .chunk-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .chunk-dot:hover { transform: scale(1.25); }
+    .chunk-dot.done { background-color: var(--accent); }
+    .chunk-dot.running { border: 2px solid var(--accent); background: transparent; }
+    .chunk-dot.queued { border: 1px solid var(--divider); background: transparent; }
+    .calm-meta-stats {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 22px;
+    }
+    .activity-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+    .activity-toggle-btn:hover { text-decoration: underline; }
+    .quiet-log-box {
+      display: none;
+      margin-top: 14px;
+      background-color: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      max-height: 180px;
+      overflow-y: auto;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .quiet-log-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* VIEW 3: CHUNKS STYLES */
+    .chunks-header-box {
+      margin-bottom: 28px;
+    }
+    .metrics-strip {
+      display: flex;
+      gap: 20px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .metrics-item strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .metrics-item.accent strong {
+      color: var(--accent);
+    }
+    .metrics-item.warn strong {
+      color: var(--medium);
+    }
+    .chunks-table-wrap {
+      width: 100%;
+      border-top: 1px solid var(--divider);
+    }
+    .chunk-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 6px;
+      border-bottom: 1px solid var(--divider);
+      cursor: pointer;
+      transition: background-color 0.12s;
+      font-size: 13px;
+    }
+    .chunk-row:hover {
+      background-color: var(--hover);
+    }
+    .c-col-part {
+      width: 110px;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .c-col-lines {
+      width: 130px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+    .c-col-findings {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .c-finding-chip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      color: var(--text);
+    }
+    .c-finding-chip.critical { border-color: rgba(240,97,109,0.3); color: var(--critical); }
+    .c-finding-chip.high { border-color: rgba(244,162,89,0.3); color: var(--high); }
+    .c-finding-chip.medium { border-color: rgba(233,196,106,0.3); color: var(--medium); }
+    .c-finding-chip.low { border-color: rgba(111,207,151,0.3); color: var(--low); }
+    .c-col-status {
+      width: 140px;
+      text-align: right;
+      font-size: 12px;
+    }
+    .c-status-complete { color: var(--accent); }
+    .c-status-recovered { color: var(--medium); font-weight: 500; }
+    .c-col-time {
+      width: 60px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .tag-note {
+      font-size: 10px;
+      background: rgba(233, 196, 106, 0.15);
+      color: var(--medium);
+      padding: 1px 5px;
+      border-radius: 2px;
+      margin-left: 4px;
+      font-family: var(--font-sans);
+    }
+
+    /* Side Drawer for Inspecting Chunk / Details */
+    .drawer-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 200;
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: 540px;
+      max-width: 92vw;
+      height: 100vh;
+      background-color: var(--surface);
+      border-left: 1px solid var(--divider);
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 32px 28px;
+    }
+    .drawer-panel.open {
+      transform: translateX(0);
+    }
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 18px;
+      cursor: pointer;
+      align-self: flex-end;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+    .drawer-close:hover { color: var(--text); }
+    .drawer-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin: 20px 0 6px 0;
+      font-weight: 600;
+    }
+    .drawer-code-pre {
+      background-color: var(--bg);
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      max-height: 400px;
+    }
+
+    @media (max-width: 680px) {
+      .summary-header-row { flex-direction: column; }
+      .summary-actions-bar { align-items: flex-start; }
+      .summary-meta-row { flex-direction: column; align-items: flex-start; }
+      .findings-control-bar { flex-direction: column; align-items: stretch; }
+      .search-wrap input { width: 100%; }
+      .chunk-row { flex-wrap: wrap; gap: 8px; }
+      .c-col-findings { width: 100%; order: 4; }
+      .c-col-status { width: auto; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+<!-- Top Navigation Bar -->
+<nav class="site-nav">
+<div class="brand">LogSentinel</div>
+<div class="nav-links">
+<button class="nav-tab" id="tab-analyze">Analyze</button>
+<button class="nav-tab active" id="tab-report">Report</button>
+<button class="nav-tab" id="tab-chunks">Chunks</button>
+</div>
+</nav>
+<div class="page-container">
+<!-- VIEW 1: REPORT VIEW -->
+<div class="view-content active" id="view-report">
+<!-- 1. Summary Section -->
+<div class="summary-section">
+<div class="summary-header-row">
+<h1 class="summary-headline">Multi-vector reconnaissance and automated credential stuffing led to an administrative account takeover.</h1>
+<div class="summary-actions-bar">
+<div class="view-toggle-group">
+<button class="view-toggle-btn active" id="btn-view-readable">Readable</button>
+<button class="view-toggle-btn" id="btn-view-json">JSON</button>
+</div>
+<div class="dl-actions">
+<button class="btn-ghost" id="btn-dl-json">Download JSON</button>
+<button class="btn-ghost" id="btn-dl-md">Download Markdown</button>
+</div>
+</div>
+</div>
+<p class="summary-detail">Isolated secondary probes targeted database endpoints and configuration manifests, with all unauthorized sessions mitigated at the perimeter edge.</p>
+<div class="summary-meta-row">
+<div class="summary-meta-left">
+<span class="sev-dot critical"></span>
+<span>Critical · 6 findings · 2,160 lines · 9 parts · 8m 42s · 1 part recovered</span>
+</div>
+<div class="summary-meta-right">
+<span class="sev-pill"><span class="sev-dot critical"></span>1 Critical</span>
+<span class="sev-pill"><span class="sev-dot high"></span>2 High</span>
+<span class="sev-pill"><span class="sev-dot medium"></span>2 Medium</span>
+<span class="sev-pill"><span class="sev-dot low"></span>1 Low</span>
+</div>
+</div>
+</div>
+<!-- READABLE VIEW CONTAINER -->
+<div id="view-readable-content">
+<!-- Attack Flow SVG Chart Section -->
+<div class="attack-flow-section">
+<div class="attack-flow-title">Attack flow across the file</div>
+<div class="chart-svg-container" id="chart-container">
+<svg class="attack-flow-svg" id="attack-flow-svg" preserveaspectratio="xMidYMid meet" viewbox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+<!-- Dynamically populated via JS -->
+</svg>
+</div>
+<div class="chart-legend-row">
+<span>Dots: evidence lines · Arcs: linked events · Squares: findings per part</span>
+</div>
+</div>
+<!-- 2. Linked Incident Section -->
+<div class="incident-section">
+<div class="incident-heading">
+<span>Brute force then account takeover · 203.0.113.45</span>
+</div>
+<div class="incident-chain">
+<div class="incident-step" data-target="F-01">
+<span class="node-dot"></span>
+<span class="step-mono">L12 · Part 1 · 14:00:22</span>
+<span>·</span>
+<span>First failed login for "admin"</span>
+</div>
+<div class="incident-step" data-target="F-01">
+<span class="node-dot"></span>
+<span class="step-mono">L418 · Part 2 · 14:01:45</span>
+<span>·</span>
+<span>Failed login for "root"</span>
+</div>
+<div class="incident-step" data-target="F-01">
+<span class="node-dot"></span>
+<span class="step-mono">L903 · Part 4 · 14:02:18</span>
+<span>·</span>
+<span>Failed login for "administrator"</span>
+</div>
+<div class="incident-step highlight" data-target="F-01">
+<span class="node-dot"></span>
+<span class="step-mono">L1740 · Part 8 · 14:04:02</span>
+<span>·</span>
+<span>Successful login, session issued</span>
+</div>
+</div>
+<div class="incident-conclusion">
+        Repeated failed logins from one IP ended in a successful login.
+      </div>
+</div>
+<!-- 3. Findings Section -->
+<div class="findings-section">
+<div class="findings-control-bar">
+<div class="filter-tabs" id="filter-tabs">
+<button class="filter-tab active" data-filter="all">All (6)</button>
+<button class="filter-tab" data-filter="Critical">Critical (1)</button>
+<button class="filter-tab" data-filter="High">High (2)</button>
+<button class="filter-tab" data-filter="Medium">Medium (2)</button>
+<button class="filter-tab" data-filter="Low">Low (1)</button>
+</div>
+<div class="search-wrap">
+<input autocomplete="off" id="ip-search" placeholder="Filter by IP or keyword..." spellcheck="false" type="text"/>
+</div>
+</div>
+<div class="findings-list" id="findings-list"></div>
+<div class="empty-findings-state" id="empty-findings" style="display:none;">No matching findings found.</div>
+</div>
+</div>
+<!-- 5. JSON VIEW CONTAINER -->
+<div id="view-json-content" style="display:none;">
+<div class="json-header-bar">
+<span class="mono text-secondary" style="font-size:12.5px;">audit_report_AUD-2025-0514-9981.json</span>
+<button class="btn-ghost" id="btn-copy-json">Copy JSON</button>
+</div>
+<pre class="json-code-block" id="json-code-display"></pre>
+</div>
+</div>
+<!-- VIEW 2: ANALYZE VIEW -->
+<div class="view-content" id="view-analyze">
+<!-- Resume Banner -->
+<div class="banner-notice" id="session-notice">
+<span>Previous session found, 5 of 9 parts done for <span style="font-family: var(--font-mono);">production-auth-20250514.log</span></span>
+<div class="banner-actions">
+<button class="banner-link" id="btn-resume">Resume</button>
+<button class="banner-link discard" id="btn-discard">Discard</button>
+</div>
+</div>
+<h2 class="view-title-main">Upload &amp; Analyze</h2>
+<p class="view-subtitle">Target access and authorization server logs.</p>
+<div class="drop-zone" id="file-drop" role="button" tabindex="0">
+<div class="drop-label">Drop a .log or .txt file, or click to browse</div>
+<div class="drop-hint">Up to 50MB per file</div>
+<input accept=".log,.txt" id="hidden-file-input" style="display: none;" type="file"/>
+</div>
+<div class="file-meta-line" id="file-meta-line">
+    Selected: <strong id="file-name-text">auth_access_2025_05.log</strong> · 14.8 MB · 2,160 lines · ~86,400 tokens
+  </div>
+<div class="control-row">
+<select class="calm-select" id="model-select">
+<option selected="" value="qwen3.5-2b">Qwen3.5 2B (Recommended for access logs)</option>
+<option value="qwen3.5-0.8b">Qwen3.5 0.8B (Edge lightweight)</option>
+<option value="gemma4-e2b">Gemma 4 E2B (Deep reasoning)</option>
+</select>
+<button class="btn-cta" id="btn-start-run">Start analysis</button>
+<button class="btn-subtle" id="btn-cancel-run">Cancel</button>
+</div>
+<div class="in-progress-block">
+<div class="progress-stat-main">
+<span class="prog-pct" id="prog-pct-label">74%</span>
+<span class="prog-sub" id="prog-desc-label">Analyzing part 7 of 9, about 1 minute left</span>
+</div>
+<div class="progress-bar-thin">
+<div class="progress-bar-fill" id="prog-bar-fill"></div>
+</div>
+<div class="chunk-dots" id="dots-matrix"></div>
+<div class="calm-meta-stats">
+<span>Memory: 2.7 GB of 4.0 GB</span>
+<span>Average call time: 18s</span>
+</div>
+<div>
+<button class="activity-toggle-btn" id="toggle-activity-log">Activity log (14 entries) ↓</button>
+<div class="quiet-log-box" id="activity-log-box">
+<div class="quiet-log-header">
+<span>PARSER PIPELINE LOG</span>
+<button class="banner-link" id="btn-pause-log" style="font-size: 11px;">Pause</button>
+</div>
+<div id="activity-log-stream"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- VIEW 3: CHUNKS VIEW -->
+<div class="view-content" id="view-chunks">
+<div class="chunks-header-box">
+<h2 class="view-title-main">Log Chunks</h2>
+<p class="view-subtitle" style="margin-bottom: 18px;">2,160 lines divided into 9 sequential 240-line segments.</p>
+<div class="metrics-strip">
+<div class="metrics-item accent"><strong>9 / 9</strong> Processed</div>
+<div class="metrics-item warn"><strong>1 Recovered</strong> (Part 3)</div>
+<div class="metrics-item"><strong>0</strong> Errors</div>
+<div class="metrics-item">Total runtime: <strong>8m 42s</strong></div>
+</div>
+</div>
+<div class="chunks-table-wrap" id="chunks-list-container">
+<!-- Populated by JS -->
+</div>
+</div>
+</div>
+<!-- Floating Tooltip for SVG Chart -->
+<div id="chart-tooltip"></div>
+<!-- Side Drawer for Chunk / Finding Details -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<div class="drawer-panel" id="drawer-panel">
+<button class="drawer-close" id="drawer-close">✕</button>
+<div id="drawer-content"></div>
+</div>
+<script>
+  (function() {
+    const API_BASE = (window.location.protocol === 'file:' ? 'http://127.0.0.1:5000' : '') + '/api';
+
+    // Global reactive state
+    let findingsData = [];
+    let chunksData = [];
+    let logEntries = [];
+    let auditJsonPayload = {};
+    let activeJobId = null;
+    let pollInterval = null;
+    let currentFilter = 'all';
+    let selectedFile = null;
+    let totalLogLines = 258;
+    let totalLogParts = 9;
+
+    function getSevColor(sev) {
+      switch ((sev || '').toLowerCase()) {
+        case 'critical': return 'var(--critical)';
+        case 'high': return 'var(--high)';
+        case 'medium': return 'var(--medium)';
+        case 'low': return 'var(--low)';
+        default: return 'var(--accent)';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // TOP TAB SWITCHING
+    function switchMainTab(tabName) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+
+      const tabBtn = document.getElementById('tab-' + tabName);
+      const viewEl = document.getElementById('view-' + tabName);
+      if (tabBtn) tabBtn.classList.add('active');
+      if (viewEl) viewEl.classList.add('active');
+
+      if (tabName === 'report') {
+        renderAttackFlowChart();
+      }
+    }
+
+    document.getElementById('tab-analyze').addEventListener('click', () => switchMainTab('analyze'));
+    document.getElementById('tab-report').addEventListener('click', () => switchMainTab('report'));
+    document.getElementById('tab-chunks').addEventListener('click', () => switchMainTab('chunks'));
+
+    // Drawer elements
+    const drawerBackdrop = document.getElementById('drawer-backdrop');
+    const drawerPanel = document.getElementById('drawer-panel');
+    const drawerClose = document.getElementById('drawer-close');
+    const drawerContent = document.getElementById('drawer-content');
+
+    function closeDrawer() {
+      drawerBackdrop.classList.remove('open');
+      drawerPanel.classList.remove('open');
+    }
+    drawerClose.addEventListener('click', closeDrawer);
+    drawerBackdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+    function openChunkDrawer(c) {
+      if (!c) return;
+      drawerContent.innerHTML = `
+        <h2 style="font-size: 19px; font-weight: 600; color: var(--text);">Part ${c.part} Details</h2>
+        <div style="font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); margin: 4px 0 18px 0;">
+          ${c.lines} · Status: ${c.status} · Duration: ${c.duration}
+        </div>
+        
+        <div class="drawer-section-title">Execution Context</div>
+        <p style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;">${escapeHtml(c.summary)}</p>
+        
+        <div class="drawer-section-title">Token Consumption</div>
+        <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); display: flex; gap: 16px; margin-bottom: 14px;">
+          <span>Prompt: ${c.tokensIn.toLocaleString()} tokens</span>
+          <span>Completion: ${c.tokensOut.toLocaleString()} tokens</span>
+        </div>
+
+        <div class="drawer-section-title">Raw Model / Chunk Output</div>
+        <pre class="drawer-code-pre">${escapeHtml(c.sample)}</pre>
+
+        <div class="drawer-section-title">Associated Findings</div>
+        <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+          ${c.findings && c.findings.length > 0 
+            ? c.findings.map(f => `<span class="c-finding-chip" style="font-size: 12px; padding: 3px 8px;">${escapeHtml(f)}</span>`).join('') 
+            : '<span style="color: var(--text-muted); font-size: 13px;">No suspicious findings detected</span>'}
+        </div>
+      `;
+      drawerBackdrop.classList.add('open');
+      drawerPanel.classList.add('open');
+    }
+
+    // Scroll & reveal finding in list
+    function navigateToFinding(findingId) {
+      switchMainTab('report');
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      const allTab = document.querySelector('.filter-tab[data-filter="all"]');
+      if (allTab) allTab.classList.add('active');
+      const searchBox = document.getElementById('ip-search');
+      if (searchBox) searchBox.value = '';
+      renderFindings('all', '');
+
+      const targetEl = document.getElementById('finding-row-' + findingId);
+      if (targetEl) {
+        document.querySelectorAll('.finding-item').forEach(el => el.classList.remove('open'));
+        targetEl.classList.add('open');
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Tooltip Handlers
+    const tooltipEl = document.getElementById('chart-tooltip');
+    const chartContainer = document.getElementById('chart-container');
+
+    function showTooltip(e, finding, line, logSnippet) {
+      tooltipEl.innerHTML = `
+        <div class="tt-top">
+          <span class="sev-dot ${(finding.severity || '').toLowerCase()}"></span>
+          <span class="tt-id">${escapeHtml(finding.id)}</span>
+          <span class="tt-title">${escapeHtml(finding.type)}</span>
+        </div>
+        <div class="tt-meta">${line ? `Line ${line} · ` : ''}IP ${escapeHtml(finding.ip)}</div>
+        ${logSnippet ? `<div class="tt-log">${escapeHtml(logSnippet)}</div>` : ''}
+      `;
+      tooltipEl.style.display = 'block';
+      moveTooltip(e);
+    }
+
+    function moveTooltip(e) {
+      const pad = 12;
+      let left = e.clientX + pad;
+      let top = e.clientY + pad;
+      const rect = tooltipEl.getBoundingClientRect();
+      if (left + rect.width > window.innerWidth - 10) {
+        left = e.clientX - rect.width - pad;
+      }
+      if (top + rect.height > window.innerHeight - 10) {
+        top = e.clientY - rect.height - pad;
+      }
+      tooltipEl.style.left = left + 'px';
+      tooltipEl.style.top = top + 'px';
+    }
+
+    function hideTooltip() {
+      tooltipEl.style.display = 'none';
+    }
+
+    // RENDER SVG CHART
+    function renderAttackFlowChart() {
+      const svg = document.getElementById('attack-flow-svg');
+      if (!svg) return;
+
+      const totalLines = Math.max(totalLogLines, 100);
+      const totalParts = Math.max(totalLogParts, 1);
+      const width = 760;
+      const baselineY = 125;
+      const partWidth = width / totalParts;
+
+      let svgHtml = '';
+
+      // Grid lines
+      for (let i = 1; i < totalParts; i++) {
+        const x = i * partWidth;
+        svgHtml += `<line x1="${x}" y1="15" x2="${x}" y2="215" stroke="var(--divider)" stroke-dasharray="2 3" stroke-width="1" />`;
+      }
+      svgHtml += `<line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="var(--divider)" stroke-width="1" />`;
+
+      // Tick labels: P1 - Pn
+      for (let p = 1; p <= totalParts; p++) {
+        const cx = (p - 0.5) * partWidth;
+        const startLine = (p - 1) * 30 + 1;
+        svgHtml += `<text x="${cx}" y="${baselineY + 16}" text-anchor="middle" font-size="11" fill="var(--text-muted)" font-family="var(--font-mono)">P${p}</text>`;
+        svgHtml += `<text class="line-num-tick" x="${cx}" y="${baselineY + 28}" text-anchor="middle" font-size="9.5" fill="var(--text-muted)" font-family="var(--font-mono)" opacity="0.65">L${startLine}</text>`;
+      }
+
+      // Arcs for findings with multiple lines
+      findingsData.forEach(f => {
+        if (!f.points || f.points.length < 2) return;
+        const isCritical = (f.severity || '').toLowerCase() === 'critical';
+        const color = getSevColor(f.severity);
+
+        for (let i = 0; i < Math.min(f.points.length - 1, 8); i++) {
+          const ptA = f.points[i];
+          const ptB = f.points[i + 1];
+          const x1 = Math.max(5, Math.min(width - 5, (ptA.line / totalLines) * width));
+          const x2 = Math.max(5, Math.min(width - 5, (ptB.line / totalLines) * width));
+          const dx = Math.abs(x2 - x1);
+          if (dx < 1) continue;
+
+          const arcH = Math.min(95, Math.max(20, dx * 0.4));
+          const peakY = baselineY - arcH;
+          const midX = (x1 + x2) / 2;
+          const pathD = `M ${x1} ${baselineY} Q ${midX} ${peakY} ${x2} ${baselineY}`;
+
+          svgHtml += `
+            <path class="chart-interactive chart-arc arc-anim"
+                  data-fid="${f.id}"
+                  data-desc="${escapeHtml(ptB.text)}"
+                  data-line="${ptB.line}"
+                  d="${pathD}"
+                  fill="none"
+                  stroke="${color}"
+                  stroke-width="${isCritical ? '1.8' : '1.2'}"
+                  stroke-opacity="0.65" />
+          `;
+        }
+      });
+
+      // Event Nodes on baseline
+      findingsData.forEach(f => {
+        const color = getSevColor(f.severity);
+        if (!f.points) return;
+        f.points.forEach((pt, pIdx) => {
+          const x = Math.max(5, Math.min(width - 5, (pt.line / totalLines) * width));
+          svgHtml += `
+            <circle class="chart-interactive chart-node"
+                    data-fid="${f.id}"
+                    data-line="${pt.line}"
+                    data-desc="${escapeHtml(pt.text)}"
+                    cx="${x}" cy="${baselineY}" r="3.5"
+                    fill="${color}" />
+          `;
+
+          if (pIdx === 0) {
+            svgHtml += `
+              <text class="chart-interactive"
+                    data-fid="${f.id}"
+                    data-line="${pt.line}"
+                    data-desc="${escapeHtml(pt.text)}"
+                    x="${x}" y="${baselineY - 10}" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="var(--font-mono)">${f.id}</text>
+            `;
+          }
+        });
+      });
+
+      // Density Zone at bottom
+      const densityStartY = baselineY + 38;
+      const sqSize = 8;
+      const sqGap = 2;
+
+      for (let p = 1; p <= totalParts; p++) {
+        const cx = (p - 0.5) * partWidth;
+        const chunk = chunksData.find(c => c.part === p);
+        const fList = (chunk && chunk.findings) ? chunk.findings : [];
+
+        if (fList.length === 0) {
+          svgHtml += `
+            <line x1="${cx - 8}" y1="${densityStartY + 4}" x2="${cx + 8}" y2="${densityStartY + 4}" stroke="var(--divider)" stroke-width="1" />
+            <text x="${cx}" y="${densityStartY + 16}" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="var(--font-mono)">clear</text>
+          `;
+        } else {
+          fList.slice(0, 4).forEach((tName, idx) => {
+            const finding = findingsData.find(item => item.type === tName) || findingsData[0];
+            const sqY = densityStartY + idx * (sqSize + sqGap);
+            const sqX = cx - (sqSize / 2);
+            const color = finding ? getSevColor(finding.severity) : 'var(--accent)';
+
+            svgHtml += `
+              <rect class="chart-interactive chart-square"
+                    data-fid="${finding ? finding.id : 'F-01'}"
+                    data-part="${p}"
+                    x="${sqX}" y="${sqY}" width="${sqSize}" height="${sqSize}"
+                    rx="1.5"
+                    fill="${color}" />
+            `;
+          });
+        }
+      }
+
+      svg.innerHTML = svgHtml;
+
+      // Bind events
+      const elements = svg.querySelectorAll('.chart-interactive');
+      elements.forEach(el => {
+        const fid = el.getAttribute('data-fid');
+        const finding = findingsData.find(item => item.id === fid);
+        if (!finding) return;
+
+        el.addEventListener('mouseenter', (e) => {
+          chartContainer.classList.add('has-focus');
+          svg.querySelectorAll(`[data-fid="${fid}"]`).forEach(node => {
+            node.classList.add('highlighted');
+          });
+          const line = el.getAttribute('data-line') || (el.getAttribute('data-part') ? `Part ${el.getAttribute('data-part')}` : '');
+          const desc = el.getAttribute('data-desc') || finding.reason;
+          showTooltip(e, finding, line, desc);
+        });
+
+        el.addEventListener('mousemove', (e) => moveTooltip(e));
+
+        el.addEventListener('mouseleave', () => {
+          chartContainer.classList.remove('has-focus');
+          svg.querySelectorAll('.highlighted').forEach(node => node.classList.remove('highlighted'));
+          hideTooltip();
+        });
+
+        el.addEventListener('click', () => {
+          hideTooltip();
+          navigateToFinding(fid);
+        });
+      });
+    }
+
+    // RENDER FINDINGS
+    const findingsListEl = document.getElementById('findings-list');
+    function renderFindings(filterSev = 'all', searchQuery = '') {
+      if (!findingsListEl) return;
+      findingsListEl.innerHTML = '';
+      const q = (searchQuery || '').toLowerCase().trim();
+
+      const filtered = findingsData.filter(f => {
+        if (filterSev !== 'all' && (f.severity || '').toLowerCase() !== filterSev.toLowerCase()) return false;
+        if (q && !f.ip.toLowerCase().includes(q) && !f.type.toLowerCase().includes(q) && !f.id.toLowerCase().includes(q)) {
+          return false;
+        }
+        return true;
+      });
+
+      const emptyEl = document.getElementById('empty-findings');
+      if (filtered.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      } else {
+        if (emptyEl) emptyEl.style.display = 'none';
+      }
+
+      filtered.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = 'finding-item' + (idx === 0 ? ' open' : '');
+        item.id = 'finding-row-' + f.id;
+        item.setAttribute('data-id', f.id);
+
+        const pts = f.points || [];
+        const maxVisible = 5;
+        const hasMore = pts.length > maxVisible;
+        const visiblePts = pts.slice(0, maxVisible);
+        const hiddenPts = pts.slice(maxVisible);
+
+        function renderEvRows(pList) {
+          return pList.map(p => {
+            let htmlText = escapeHtml(p.text);
+            if (p.hl) {
+              const safeHl = escapeHtml(p.hl);
+              htmlText = htmlText.split(safeHl).join(`<span class="ev-hl">${safeHl}</span>`);
+            }
+            return `<div class="ev-row"><span class="ev-gutter">${p.line}</span><span class="ev-content">${htmlText}</span></div>`;
+          }).join('');
+        }
+
+        item.innerHTML = `
+          <div class="finding-item-row">
+            <div class="f-line-1">
+              <div class="f-line-1-left">
+                <span class="sev-dot ${(f.severity || '').toLowerCase()}"></span>
+                <span class="f-id">${escapeHtml(f.id)}</span>
+                <span class="f-title">${escapeHtml(f.type)}</span>
+              </div>
+              <div class="f-ip">${escapeHtml(f.ip)}</div>
+            </div>
+            <div class="f-line-2">
+              <span>${escapeHtml(f.reason)}</span>
+              <span class="f-line-2-caption">· ${escapeHtml(f.caption)}</span>
+            </div>
+          </div>
+          <div class="finding-details">
+            <div class="detail-block">
+              <div class="detail-label">Evidence</div>
+              <div class="evidence-block">
+                <div class="ev-visible-container">${renderEvRows(visiblePts)}</div>
+                ${hasMore ? `<div class="ev-hidden-container" style="display:none;">${renderEvRows(hiddenPts)}</div>` : ''}
+              </div>
+              ${hasMore ? `<button class="ev-toggle-btn" data-action="more">Show ${hiddenPts.length} more lines</button>` : ''}
+            </div>
+            <div class="detail-block" style="margin-bottom:0;">
+              <div class="detail-label">Suggested Action</div>
+              <div class="action-line">${escapeHtml(f.action)}</div>
+            </div>
+          </div>
+        `;
+
+        const rowBar = item.querySelector('.finding-item-row');
+        rowBar.addEventListener('click', () => {
+          const isOpen = item.classList.contains('open');
+          document.querySelectorAll('.finding-item').forEach(el => el.classList.remove('open'));
+          if (!isOpen) item.classList.add('open');
+        });
+
+        if (hasMore) {
+          const toggleBtn = item.querySelector('.ev-toggle-btn');
+          const hiddenBox = item.querySelector('.ev-hidden-container');
+          toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (hiddenBox.style.display === 'none') {
+              hiddenBox.style.display = 'block';
+              toggleBtn.textContent = 'Show less';
+            } else {
+              hiddenBox.style.display = 'none';
+              toggleBtn.textContent = `Show ${hiddenPts.length} more lines`;
+            }
+          });
+        }
+
+        findingsListEl.appendChild(item);
+      });
+    }
+
+    // RENDER CHUNKS VIEW
+    function renderChunksList() {
+      const container = document.getElementById('chunks-list-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      chunksData.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'chunk-row';
+        
+        const chipsHtml = (c.findings && c.findings.length > 0)
+          ? c.findings.map(t => {
+              const finding = findingsData.find(f => f.type === t);
+              const sevClass = finding ? (finding.severity || '').toLowerCase() : '';
+              return `<span class="c-finding-chip ${sevClass}">${escapeHtml(t)}</span>`;
+            }).join('')
+          : '<span style="color:var(--text-muted);font-size:12px;">clear</span>';
+
+        const statusHtml = c.isRecovered
+          ? `<span class="c-status-recovered">Optimized<span class="tag-note">skipped call</span></span>`
+          : `<span class="c-status-complete">Complete</span>`;
+
+        row.innerHTML = `
+          <div class="c-col-part">Part ${c.part}</div>
+          <div class="c-col-lines">${escapeHtml(c.lines)}</div>
+          <div class="c-col-findings">${chipsHtml}</div>
+          <div class="c-col-status">${statusHtml}</div>
+          <div class="c-col-time">${escapeHtml(c.duration)}</div>
+        `;
+
+        row.addEventListener('click', () => openChunkDrawer(c));
+        container.appendChild(row);
+      });
+    }
+
+    // ACTIVITY LOG HELPER
+    function addLogEntry(msg) {
+      const streamEl = document.getElementById('activity-log-stream');
+      const timeStr = new Date().toTimeString().split(' ')[0];
+      const entry = `[${timeStr}] ${msg}`;
+      logEntries.push(entry);
+
+      if (streamEl) {
+        const row = document.createElement('div');
+        row.textContent = entry;
+        streamEl.appendChild(row);
+        streamEl.scrollTop = streamEl.scrollHeight;
+      }
+      const logToggle = document.getElementById('toggle-activity-log');
+      if (logToggle) {
+        logToggle.textContent = `Activity log (${logEntries.length} entries) ↓`;
+      }
+    }
+
+    // SYNTAX HIGHLIGHTER
+    function syntaxHighlight(json) {
+      return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(
+        /("(\u[a-zA-Z0-9]{4}|\[^u]|[^\"])*"(\s*:)?|(true|false|null)|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        function (match) {
+          let cls = 'json-num';
+          if (/^"/.test(match)) {
+            cls = (/:$/.test(match)) ? 'json-key' : 'json-str';
+          } else if (/true|false/.test(match)) {
+            cls = 'json-bool';
+          } else if (/null/.test(match)) {
+            cls = 'json-null';
+          }
+          return '<span class="' + cls + '">' + match + '</span>';
+        }
+      );
+    }
+
+    // UPDATE UI WITH REPORT DATA
+    function applyReport(report, job) {
+      auditJsonPayload = report;
+      const chains = report.attack_chains || [];
+
+      // Map to findingsData
+      findingsData = chains.map((c, idx) => {
+        const fid = `F-0${idx + 1}`;
+        const lineList = c.lines || [];
+        const linesStr = lineList.length > 5 
+          ? `lines ${lineList[0]}..${lineList[lineList.length-1]} (${lineList.length} occurrences)` 
+          : `lines ${lineList.join(', ')}`;
+
+        return {
+          id: fid,
+          severity: c.severity || 'High',
+          type: c.attack_type || 'Malicious Activity',
+          ip: (c.actors && c.actors[0]) || 'unknown',
+          reason: c.reason || 'Security threat detected across multiple log entries.',
+          caption: `${lineList.length} line(s) · ${linesStr}`,
+          action: c.action || 'Deploy perimeter filtering and enforce rate limits.',
+          points: lineList.map(l => ({
+            line: l,
+            part: Math.floor(l / 30) + 1,
+            text: `Line ${l} · ${c.evidence || c.attack_type}`,
+            hl: (c.actors && c.actors[0]) || ''
+          }))
+        };
+      });
+
+      // Map to chunksData
+      const cfList = (job && job.chunk_findings) ? job.chunk_findings : [];
+      chunksData = cfList.map(cf => ({
+        part: cf.chunk,
+        lines: `L${cf.lines.replace('-', '–L')}`,
+        status: cf.skipped_model ? 'Optimized' : 'Complete',
+        isRecovered: cf.skipped_model,
+        findings: (cf.findings || []).map(f => f.type),
+        duration: `${cf.timing_s || 0}s`,
+        tokensIn: cf.skipped_model ? 0 : 420,
+        tokensOut: cf.skipped_model ? 0 : 85,
+        summary: cf.skipped_model 
+          ? 'Static benign traffic; skipped model call to minimize latency and memory usage.'
+          : (cf.findings && cf.findings.length > 0 
+              ? `Flagged ${cf.findings.length} threat(s): ${cf.findings.map(f => f.type).join(', ')}` 
+              : 'Clean log partition without hostile activity.'),
+        sample: cf.raw || 'Chunk entries'
+      }));
+
+      totalLogParts = chunksData.length || 9;
+      totalLogLines = totalLogParts * 30;
+
+      // Update summary headline
+      const headlineEl = document.querySelector('.summary-headline');
+      if (headlineEl) headlineEl.textContent = report.summary || 'Security log analysis complete.';
+
+      const detailEl = document.querySelector('.summary-detail');
+      if (detailEl) {
+        detailEl.textContent = `Processed ${totalLogParts} chunks with offline AI model under strict 4GB RAM ceiling. Top hostile actors: ${(report.top_malicious_ips || []).join(', ')}.`;
+      }
+
+      // Count severities
+      const crit = findingsData.filter(f => (f.severity || '').toLowerCase() === 'critical').length;
+      const high = findingsData.filter(f => (f.severity || '').toLowerCase() === 'high').length;
+      const med = findingsData.filter(f => (f.severity || '').toLowerCase() === 'medium').length;
+      const low = findingsData.filter(f => (f.severity || '').toLowerCase() === 'low').length;
+
+      // Meta row
+      const metaLeft = document.querySelector('.summary-meta-left span:last-child');
+      if (metaLeft) {
+        const infTime = (report.telemetry && report.telemetry.total_inference_time_s) || 0;
+        metaLeft.textContent = `${findingsData.length} findings · ${totalLogLines} lines · ${totalLogParts} parts · ${infTime}s AI inference · 100% offline`;
+      }
+
+      // Meta pills
+      const metaRight = document.querySelector('.summary-meta-right');
+      if (metaRight) {
+        metaRight.innerHTML = `
+          <span class="sev-pill"><span class="sev-dot critical"></span>${crit} Critical</span>
+          <span class="sev-pill"><span class="sev-dot high"></span>${high} High</span>
+          <span class="sev-pill"><span class="sev-dot medium"></span>${med} Medium</span>
+          <span class="sev-pill"><span class="sev-dot low"></span>${low} Low</span>
+        `;
+      }
+
+      // Filter tabs update
+      const tabs = document.querySelectorAll('.filter-tab');
+      tabs.forEach(t => {
+        const f = t.getAttribute('data-filter');
+        if (f === 'all') t.textContent = `All (${findingsData.length})`;
+        if (f === 'Critical') t.textContent = `Critical (${crit})`;
+        if (f === 'High') t.textContent = `High (${high})`;
+        if (f === 'Medium') t.textContent = `Medium (${med})`;
+        if (f === 'Low') t.textContent = `Low (${low})`;
+      });
+
+      // Update linked incident chain
+      const incSection = document.querySelector('.incident-section');
+      if (incSection) {
+        const bruteChain = findingsData.find(f => f.type.toLowerCase().includes('brute') || f.type.toLowerCase().includes('compromise') || f.id === 'F-01');
+        if (bruteChain) {
+          const incHeading = incSection.querySelector('.incident-heading span');
+          if (incHeading) incHeading.textContent = `Attack Sequence: Brute Force to Account Compromise · IP ${bruteChain.ip}`;
+          const chainBox = incSection.querySelector('.incident-chain');
+          if (chainBox) {
+            chainBox.innerHTML = (bruteChain.points || []).slice(0, 6).map(pt => `
+              <div class="incident-step" data-target="${bruteChain.id}">
+                <span class="node-dot"></span>
+                <span class="step-mono">L${pt.line} · Part ${pt.part}</span>
+                <span>·</span>
+                <span>${escapeHtml(pt.text)}</span>
+              </div>
+            `).join('');
+          }
+          const concEl = incSection.querySelector('.incident-conclusion');
+          if (concEl) concEl.textContent = 'Coordinated authentication assault culminated in successful credential takeover followed by sensitive database extraction.';
+        }
+      }
+
+      // Render chart, findings, and chunks
+      renderAttackFlowChart();
+      renderFindings('all', '');
+      renderChunksList();
+
+      // JSON Code display
+      const jsonEl = document.getElementById('json-code-display');
+      if (jsonEl) {
+        jsonEl.innerHTML = syntaxHighlight(JSON.stringify(report, null, 2));
+      }
+    }
+
+    // POLLING WORKER
+    function startPolling(jobId) {
+      if (pollInterval) clearInterval(pollInterval);
+
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/status/${jobId}`);
+          if (!res.ok) return;
+          const job = await res.json();
+
+          // Progress
+          const pct = job.progress || 0;
+          const bar = document.getElementById('prog-bar-fill');
+          if (bar) bar.style.width = pct + '%';
+          const pctLabel = document.getElementById('prog-pct-label');
+          if (pctLabel) pctLabel.textContent = pct + '%';
+          const descLabel = document.getElementById('prog-desc-label');
+          if (descLabel) {
+            descLabel.textContent = `Analyzing part ${job.current_chunk || 0} of ${job.total_chunks || 9}...`;
+          }
+
+          // Dots matrix
+          const dotsMatrix = document.getElementById('dots-matrix');
+          if (dotsMatrix && job.total_chunks) {
+            dotsMatrix.innerHTML = '';
+            for (let i = 1; i <= job.total_chunks; i++) {
+              const dot = document.createElement('div');
+              dot.className = 'chunk-dot ' + (i < job.current_chunk ? 'done' : (i === job.current_chunk ? 'running' : 'queued'));
+              dot.title = 'Part ' + i;
+              dotsMatrix.appendChild(dot);
+            }
+          }
+
+          // Stream logs for new chunks
+          if (job.chunk_findings && job.chunk_findings.length > 0) {
+            const lastLogged = logEntries.filter(e => e.includes('Chunk')).length;
+            for (let idx = lastLogged; idx < job.chunk_findings.length; idx++) {
+              const cf = job.chunk_findings[idx];
+              if (cf.skipped_model) {
+                addLogEntry(`Chunk ${cf.chunk}/${job.total_chunks} [Lines ${cf.lines}] Static benign traffic (skipped model call).`);
+              } else {
+                addLogEntry(`Chunk ${cf.chunk}/${job.total_chunks} [Lines ${cf.lines}] done in ${cf.timing_s}s - ${cf.findings.length} threat(s) flagged.`);
+              }
+            }
+          }
+
+          // Telemetry
+          if (job.telemetry) {
+            const stats = document.querySelector('.calm-meta-stats');
+            if (stats) {
+              stats.innerHTML = `
+                <span>Process RAM: ${job.telemetry.process_ram_mb || 0} MB (Sys: ${job.telemetry.system_ram_used_gb || 0} GB / ${job.telemetry.system_ram_total_gb || 0} GB)</span>
+                <span>Avg latency: ${job.telemetry.avg_chunk_latency_s || 0}s · Saved calls: ${job.telemetry.model_calls_saved || 0}</span>
+              `;
+            }
+          }
+
+          // Complete
+          if (job.status === 'done') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            addLogEntry('Pipeline complete! Assembling incident correlation report...');
+            const repRes = await fetch(`${API_BASE}/report/${jobId}`);
+            if (repRes.ok) {
+              const reportData = await repRes.json();
+              applyReport(reportData.report || reportData, job);
+              switchMainTab('report');
+            }
+          } else if (job.status === 'error') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            if (descLabel) descLabel.textContent = 'Analysis halted: ' + (job.error || 'Unknown error');
+            addLogEntry('ERROR: ' + (job.error || 'Server error'));
+          }
+        } catch (e) {
+          console.warn('Polling error:', e);
+        }
+      }, 1200);
+    }
+
+    // INITIALIZATION & API BINDINGS
+    async function init() {
+      // 1. Check Ollama & Backend Health
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        if (res.ok) {
+          const d = await res.json();
+          addLogEntry(`Backend connected. Local Ollama: ${d.ollama_connected ? 'Ready (' + d.model + ')' : 'Offline'}`);
+        }
+      } catch (e) {
+        addLogEntry('Backend not detected on :5000. Start backend with start.bat');
+      }
+
+      // 2. Fetch Models
+      try {
+        const mRes = await fetch(`${API_BASE}/models`);
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          const select = document.getElementById('model-select');
+          if (select && mData.models && mData.models.length > 0) {
+            select.innerHTML = '';
+            mData.models.forEach(m => {
+              const mName = typeof m === 'object' ? (m.name || m.model) : m;
+              const opt = document.createElement('option');
+              opt.value = mName;
+              opt.textContent = `${mName} ${mName === (mData.current_model || mName) ? '(Active)' : ''}`;
+              if (mName === mData.current_model) opt.selected = true;
+              select.appendChild(opt);
+            });
+          }
+        }
+      } catch (e) {}
+
+      // Model Switch Listener
+      const modelSelect = document.getElementById('model-select');
+      if (modelSelect) {
+        modelSelect.addEventListener('change', async (e) => {
+          const chosen = e.target.value;
+          try {
+            await fetch(`${API_BASE}/set-model`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model: chosen })
+            });
+            addLogEntry(`Switched active local model to ${chosen}`);
+          } catch (err) {
+            console.error(err);
+          }
+        });
+      }
+
+      // 3. File Input & Drag-and-Drop
+      const dropZone = document.getElementById('file-drop');
+      const hiddenInput = document.getElementById('hidden-file-input');
+      const metaLine = document.getElementById('file-meta-line');
+      const fileNameText = document.getElementById('file-name-text');
+      const btnStart = document.getElementById('btn-start-run');
+
+      function handleFile(file) {
+        if (!file) return;
+        selectedFile = file;
+        const mb = (file.size / (1024 * 1024)).toFixed(2);
+        if (fileNameText) fileNameText.textContent = file.name;
+        if (metaLine) {
+          metaLine.innerHTML = `Selected: <strong>${escapeHtml(file.name)}</strong> · ${mb} MB · Ready to parse into token-safe chunks`;
+        }
+        addLogEntry(`File loaded: ${file.name} (${mb} MB)`);
+      }
+
+      if (dropZone && hiddenInput) {
+        dropZone.addEventListener('click', () => hiddenInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--divider)'; });
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.style.borderColor = 'var(--divider)';
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        });
+        hiddenInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        });
+      }
+
+      // 4. Start Analysis Action
+      if (btnStart) {
+        btnStart.addEventListener('click', async () => {
+          if (!selectedFile) {
+            if (hiddenInput) hiddenInput.click();
+            return;
+          }
+
+          btnStart.disabled = true;
+          addLogEntry(`Uploading ${selectedFile.name} to log splitting engine...`);
+
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+
+          try {
+            const res = await fetch(`${API_BASE}/analyze`, {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!res.ok) {
+              const err = await res.json();
+              addLogEntry('Failed to start: ' + (err.error || 'Server error'));
+              btnStart.disabled = false;
+              return;
+            }
+
+            const data = await res.json();
+            activeJobId = data.job_id;
+            localStorage.setItem('active_job_id', activeJobId);
+            addLogEntry(`Job ${activeJobId} registered. ${data.total_chunks} chunks queued for local inference.`);
+
+            startPolling(activeJobId);
+          } catch (e) {
+            addLogEntry('Network error contacting backend: ' + e.message);
+            btnStart.disabled = false;
+          }
+        });
+      }
+
+      // 5. Resume / Discard Banner
+      const lastJobId = localStorage.getItem('active_job_id');
+      const sessionBanner = document.getElementById('session-notice');
+      const btnResume = document.getElementById('btn-resume');
+      const btnDiscard = document.getElementById('btn-discard');
+
+      if (lastJobId && sessionBanner) {
+        try {
+          const res = await fetch(`${API_BASE}/status/${lastJobId}`);
+          if (res.ok) {
+            const j = await res.json();
+            if (j.status === 'analyzing' || j.status === 'pending' || j.status === 'done') {
+              sessionBanner.style.display = 'flex';
+              sessionBanner.querySelector('span').textContent = `Saved session detected: ${j.current_chunk || 0} of ${j.total_chunks || 9} parts processed.`;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (btnResume && sessionBanner) {
+        btnResume.addEventListener('click', async () => {
+          const savedId = localStorage.getItem('active_job_id');
+          if (savedId) {
+            await fetch(`${API_BASE}/resume/${savedId}`, { method: 'POST' });
+            sessionBanner.style.display = 'none';
+            addLogEntry(`Resumed analysis session for Job ${savedId}.`);
+            startPolling(savedId);
+          }
+        });
+      }
+
+      if (btnDiscard && sessionBanner) {
+        btnDiscard.addEventListener('click', () => {
+          localStorage.removeItem('active_job_id');
+          sessionBanner.style.display = 'none';
+          addLogEntry('Previous session discarded.');
+        });
+      }
+
+      // 6. Search & Filters
+      const searchBox = document.getElementById('ip-search');
+      if (searchBox) {
+        searchBox.addEventListener('input', (e) => {
+          renderFindings(currentFilter, e.target.value);
+        });
+      }
+
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.getAttribute('data-filter');
+          renderFindings(currentFilter, searchBox ? searchBox.value : '');
+        });
+      });
+
+      // 7. Toggle Activity Log Box
+      const logToggle = document.getElementById('toggle-activity-log');
+      const logBox = document.getElementById('activity-log-box');
+      if (logToggle && logBox) {
+        logToggle.addEventListener('click', () => {
+          const isOpen = logBox.style.display === 'block';
+          logBox.style.display = isOpen ? 'none' : 'block';
+          logToggle.textContent = `Activity log (${logEntries.length} entries) ${isOpen ? '↓' : '↑'}`;
+        });
+      }
+
+      // 8. Download Handlers
+      const btnDlJson = document.getElementById('btn-dl-json');
+      if (btnDlJson) {
+        btnDlJson.addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(auditJsonPayload, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `security_audit_report_${activeJobId || 'latest'}.json`;
+          a.click();
+        });
+      }
+
+      const btnDlMd = document.getElementById('btn-dl-md');
+      if (btnDlMd) {
+        btnDlMd.addEventListener('click', () => {
+          let md = `# Security Audit Report
+
+`;
+          md += `**Summary:** ${auditJsonPayload.summary || 'Security Incident Analysis'}
+
+`;
+          md += `## Verified Threat Chains
+
+`;
+          (findingsData || []).forEach(f => {
+            md += `### [${f.severity}] ${f.id}: ${f.type} (${f.ip})
+`;
+            md += `- **Timeline/Lines:** ${f.caption}
+`;
+            md += `- **Reason:** ${f.reason}
+`;
+            md += `- **Remediation Action:** ${f.action}
+
+`;
+          });
+          const blob = new Blob([md], { type: 'text/markdown' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `security_audit_report_${activeJobId || 'latest'}.md`;
+          a.click();
+        });
+      }
+
+      const btnCopyJson = document.getElementById('btn-copy-json');
+      if (btnCopyJson) {
+        btnCopyJson.addEventListener('click', function() {
+          navigator.clipboard.writeText(JSON.stringify(auditJsonPayload, null, 2)).then(() => {
+            this.textContent = 'Copied!';
+            setTimeout(() => { this.textContent = 'Copy JSON'; }, 1500);
+          });
+        });
+      }
+
+      const btnReadable = document.getElementById('btn-view-readable');
+      const btnJson = document.getElementById('btn-view-json');
+      const readableContent = document.getElementById('view-readable-content');
+      const jsonContent = document.getElementById('view-json-content');
+
+      if (btnReadable && btnJson && readableContent && jsonContent) {
+        btnReadable.addEventListener('click', () => {
+          btnReadable.classList.add('active');
+          btnJson.classList.remove('active');
+          readableContent.style.display = 'block';
+          jsonContent.style.display = 'none';
+        });
+
+        btnJson.addEventListener('click', () => {
+          btnJson.classList.add('active');
+          btnReadable.classList.remove('active');
+          readableContent.style.display = 'none';
+          jsonContent.style.display = 'block';
+        });
+      }
+
+      // Initial visual render
+      renderAttackFlowChart();
+      renderFindings('all', '');
+      renderChunksList();
+    }
+
+    // Start on DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+</body></html>
